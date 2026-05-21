@@ -4,3 +4,14 @@
 
 [build.environment]
   NPM_FLAGS = "--include=dev"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://codingbackend-rdyv.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

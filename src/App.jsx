@@ -22,8 +22,37 @@ const SESSION_KEY = "onlineQuizCurrentUser";
 const QUESTIONS_KEY = "onlineQuizQuestions";
 const ADMIN_SESSION_KEY = "onlineQuizAdminSession";
 const THEME_KEY = "onlineQuizTheme";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "" : "https://codingbackend-rdyv.onrender.com")
+).replace(/\/+$/, "");
+const API_FALLBACK_BASE_URL = "https://codingbackend-rdyv.onrender.com";
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
+const fallbackApiUrl = (path) => `${API_FALLBACK_BASE_URL}${path}`;
+
+const apiFetch = async (path, options) => {
+  const primaryUrl = apiUrl(path);
+  const response = await fetch(primaryUrl, options);
+
+  if (response.status !== 404) {
+    return response;
+  }
+
+  let isSameOrigin = false;
+
+  try {
+    const resolvedPrimaryUrl = new URL(primaryUrl, window.location.origin);
+    isSameOrigin = resolvedPrimaryUrl.origin === window.location.origin;
+  } catch {
+    isSameOrigin = primaryUrl.startsWith("/");
+  }
+
+  if (!isSameOrigin) {
+    return response;
+  }
+
+  return fetch(fallbackApiUrl(path), options);
+};
 
 const makeUsername = (name = "", email = "") => {
   const base = name.trim() || email.split("@")[0] || "user";
@@ -139,7 +168,7 @@ function App() {
   };
 
   const fetchQuestionsFromApi = async () => {
-    const response = await fetch(apiUrl("/api/questions"));
+    const response = await apiFetch("/api/questions");
 
     if (!response.ok) {
       throw new Error("Could not load questions from database.");
@@ -155,7 +184,7 @@ function App() {
   };
 
   const fetchUsersFromApi = async () => {
-    const response = await fetch(apiUrl("/api/users"));
+    const response = await apiFetch("/api/users");
 
     if (!response.ok) {
       throw new Error("Could not load users from database.");
@@ -299,7 +328,7 @@ function App() {
 
     if (mode === "register") {
       try {
-        const response = await fetch(apiUrl("/api/users"), {
+        const response = await apiFetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -331,7 +360,7 @@ function App() {
     }
 
     try {
-      const response = await fetch(apiUrl("/api/auth/login"), {
+      const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -427,7 +456,7 @@ function App() {
       return;
     }
 
-    const response = await fetch(apiUrl(`/api/users/${userToUpdate.id}`), {
+    const response = await apiFetch(`/api/users/${userToUpdate.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
@@ -462,7 +491,7 @@ function App() {
   };
 
   const addQuestion = async (question) => {
-    const response = await fetch(apiUrl("/api/questions"), {
+    const response = await apiFetch("/api/questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(question),
@@ -483,7 +512,7 @@ function App() {
     }
 
     if (questions.some((item) => item.id === questionIdOrIndex)) {
-      const response = await fetch(apiUrl(`/api/questions/${questionIdOrIndex}`), {
+      const response = await apiFetch(`/api/questions/${questionIdOrIndex}`, {
         method: "DELETE",
       });
 
@@ -506,7 +535,7 @@ function App() {
       return;
     }
 
-    const response = await fetch(apiUrl(`/api/users/${user.id}`), { method: "DELETE" });
+    const response = await apiFetch(`/api/users/${user.id}`, { method: "DELETE" });
 
     if (!response.ok) {
       return;
@@ -526,7 +555,7 @@ function App() {
       return;
     }
 
-    const response = await fetch(apiUrl(`/api/users/${user.id}`), {
+    const response = await apiFetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(changes),
@@ -585,7 +614,7 @@ function App() {
       },
     };
 
-    const response = await fetch(apiUrl(`/api/users/${user.id}`), {
+    const response = await apiFetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stats: nextStats }),
@@ -604,7 +633,7 @@ function App() {
       return;
     }
 
-    const response = await fetch(apiUrl(`/api/users/${user.id}`), {
+    const response = await apiFetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ blocked: isBlocking }),
