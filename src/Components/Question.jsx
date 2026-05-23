@@ -14,8 +14,8 @@ answer: "4"
 {
 category: "JavaScript",
 question: "3. React is a ?",
-options: ["Library","Language","Database","OS"],
-answer: "Library"
+options: ["Librarya","Language","Database","OS"],
+answer: "Librarya"
 },
 {
   category: "CSS",
