@@ -191,7 +191,7 @@ function UserDetail({
                 <strong>{user.email}</strong>
               </div>
               <div>
-                <span>Questions Solved</span>
+                <span>Questions Solveds</span>
                 <strong>{stats.totalSolved || 0}</strong>
               </div>
               <div>

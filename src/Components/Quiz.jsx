@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import CategoryLogo from "./categoryLogos";
 import quizCategories from "./QuizCategories";
 import UserMenu from "./UserMenu";
 import { pageRoutes } from "../pageRoutes";
@@ -121,7 +122,7 @@ function Quiz({
 
         <section className="hero-panel">
           <div className="hero-copy">
-            <p className="eyebrow">Quick brain workout</p>
+            <p className="eyebrow">Quick brain workouts</p>
             <h1>Online Quiz</h1>
             <p className="hero-text">
               Pick a practice topic and challenge yourself with fast questions,
@@ -141,7 +142,10 @@ function Quiz({
                       onClick={() => startPractice(category)}
                       type="button"
                     >
-                      <span>{category}</span>
+                      <span className="practice-card-title">
+                        <CategoryLogo category={category} />
+                        <span>{category}</span>
+                      </span>
                       <small>
                         {questionCount
                           ? `${questionCount} question${questionCount === 1 ? "" : "s"}`

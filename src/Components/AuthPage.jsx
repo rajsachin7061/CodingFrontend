@@ -2,9 +2,11 @@
 function AuthPage({
   form,
   isRegister,
+  isRegisterOtpStep,
   message,
   onChange,
   onForgotPassword,
+  onSendRegisterOtp,
   onSubmit,
   onSwitchMode,
 }) {
@@ -12,7 +14,7 @@ function AuthPage({
     <main className="quiz-shell auth-shell">
       <section className="auth-panel">
         <div className="auth-copy">
-          <p className="eyebrow">Online Quiz</p>
+          <p className="eyebrow">Coding Snipers</p>
           <h1>{isRegister ? "Create Account" : "Welcome Back"}</h1>
           <p className="hero-text">
             {isRegister
@@ -60,11 +62,41 @@ function AuthPage({
             />
           </label>
 
+          {isRegister && isRegisterOtpStep && (
+            <label>
+              Email OTP
+              <input
+                autoComplete="one-time-code"
+                name="otp"
+                onChange={onChange}
+                placeholder="Enter verification OTP"
+                type="text"
+                value={form.otp}
+              />
+            </label>
+          )}
+
           {message && <p className="form-message">{message}</p>}
 
-          <button className="primary-action auth-submit" type="submit">
-            {isRegister ? "Register" : "Login"}
-          </button>
+          {isRegister ? (
+            isRegisterOtpStep ? (
+              <button className="primary-action auth-submit" type="submit">
+                Verify OTP & Register
+              </button>
+            ) : (
+              <button
+                className="primary-action auth-submit"
+                onClick={onSendRegisterOtp}
+                type="button"
+              >
+                Send Verification OTP
+              </button>
+            )
+          ) : (
+            <button className="primary-action auth-submit" type="submit">
+              Login
+            </button>
+          )}
 
           {!isRegister && (
             <button

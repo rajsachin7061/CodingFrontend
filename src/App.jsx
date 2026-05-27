@@ -27,17 +27,13 @@ const API_BASE_URL = (
   (import.meta.env.DEV ? "" : "https://codingbackend-rdyv.onrender.com")
 ).replace(/\/+$/, "");
 const API_FALLBACK_BASE_URL = "https://codingbackend-rdyv.onrender.com";
+const IS_DEV = Boolean(import.meta.env.DEV);
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
 const fallbackApiUrl = (path) => `${API_FALLBACK_BASE_URL}${path}`;
 
 const apiFetch = async (path, options) => {
   const primaryUrl = apiUrl(path);
-  const response = await fetch(primaryUrl, options);
-
-  if (response.status !== 404) {
-    return response;
-  }
-
+  const canUseFallback = !IS_DEV;
   let isSameOrigin = false;
 
   try {
@@ -47,8 +43,23 @@ const apiFetch = async (path, options) => {
     isSameOrigin = primaryUrl.startsWith("/");
   }
 
-  if (!isSameOrigin) {
-    return response;
+  try {
+    const response = await fetch(primaryUrl, options);
+
+    const shouldUseFallback =
+      canUseFallback && isSameOrigin && (response.status === 404 || response.status >= 500);
+
+    if (!shouldUseFallback) {
+      return response;
+    }
+  } catch (error) {
+    if (!canUseFallback || !isSameOrigin) {
+      throw error;
+    }
+  }
+
+  if (!canUseFallback) {
+    throw new Error("Primary API request failed.");
   }
 
   return fetch(fallbackApiUrl(path), options);
@@ -155,7 +166,7 @@ function App() {
   const [adminForm, setAdminForm] = useState({ username: "", password: "" });
   const [adminMessage, setAdminMessage] = useState("");
   const [resetStep, setResetStep] = useState("email");
-  const [resetRequest, setResetRequest] = useState(null);
+  const [registerStep, setRegisterStep] = useState("details");
   const mode = getAllowedPage(location.pathname, currentUser);
   const routeCategory = mode === "quiz" ? getQuizCategoryFromPath(location.pathname) : "";
 
@@ -328,12 +339,13 @@ function App() {
 
     if (mode === "register") {
       try {
-        const response = await apiFetch("/api/users", {
+        const response = await apiFetch("/api/auth/register-with-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name,
             email,
+            otp: form.otp.trim(),
             password,
             username: makeUsername(name, email),
             stats: getDefaultStats(),
@@ -387,21 +399,53 @@ function App() {
     }
   };
 
+  const handleSendRegisterOtp = async () => {
+    const name = form.name.trim();
+    const email = form.email.trim().toLowerCase();
+    const password = form.password;
+
+    if (!name || !email || !password) {
+      setMessage("Please fill in name, email and password first.");
+      return;
+    }
+
+    try {
+      const response = await apiFetch("/api/auth/request-register-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMessage(data.message || "Could not send verification OTP.");
+        return;
+      }
+
+      setRegisterStep("otp");
+      setForm((current) => ({ ...current, otp: "" }));
+      setMessage(data.message || "Verification OTP sent to your email.");
+    } catch {
+      setMessage("Could not connect to server. Please try again.");
+    }
+  };
+
   const switchMode = () => {
     goToPage(mode === "login" ? "register" : "login");
     setForm({ name: "", email: "", otp: "", password: "" });
+    setRegisterStep("details");
     setMessage("");
   };
 
   const openResetPassword = () => {
     goToPage("reset");
     setResetStep("email");
-    setResetRequest(null);
     setForm({ name: "", email: form.email, otp: "", password: "" });
     setMessage("");
   };
 
-  const handleSendResetOtp = (event) => {
+  const handleSendResetOtp = async (event) => {
     event.preventDefault();
 
     const email = form.email.trim().toLowerCase();
@@ -410,20 +454,26 @@ function App() {
       setMessage("Please enter your registered email.");
       return;
     }
+    try {
+      const response = await apiFetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    const matchedUser = users.find((user) => user.email === email);
+      const data = await response.json().catch(() => ({}));
 
-    if (!matchedUser) {
-      setMessage("No account found with this email.");
-      return;
+      if (!response.ok) {
+        setMessage(data.message || "Could not send OTP right now.");
+        return;
+      }
+
+      setResetStep("otp");
+      setForm((current) => ({ ...current, email, otp: "", password: "" }));
+      setMessage(data.message || "OTP sent to your email.");
+    } catch {
+      setMessage("Could not connect to server. Please try again.");
     }
-
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-
-    setResetRequest({ email, otp });
-    setResetStep("otp");
-    setForm((current) => ({ ...current, email, otp: "", password: "" }));
-    setMessage(`OTP sent to ${email}. Demo OTP: ${otp}`);
   };
 
   const handleResetPassword = async (event) => {
@@ -432,47 +482,33 @@ function App() {
     const email = form.email.trim().toLowerCase();
     const otp = form.otp.trim();
     const password = form.password;
-    const userIndex = users.findIndex((user) => user.email === email);
 
     if (!otp || !password) {
       setMessage("Please enter OTP and new password.");
       return;
     }
+    try {
+      const response = await apiFetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp, password }),
+      });
 
-    if (!resetRequest || resetRequest.email !== email) {
-      setMessage("Please request a new OTP for this email.");
-      return;
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMessage(data.message || "Could not update password right now.");
+        return;
+      }
+
+      await syncUsersFromApi();
+      setResetStep("email");
+      goToPage("login");
+      setForm({ name: "", email, otp: "", password: "" });
+      setMessage(data.message || "Password updated. Please log in.");
+    } catch {
+      setMessage("Could not connect to server. Please try again.");
     }
-
-    if (resetRequest.otp !== otp) {
-      setMessage("OTP is incorrect. Please check and try again.");
-      return;
-    }
-
-    const userToUpdate = users[userIndex];
-
-    if (!userToUpdate?.id) {
-      setMessage("Could not update password. User id is missing.");
-      return;
-    }
-
-    const response = await apiFetch(`/api/users/${userToUpdate.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    if (!response.ok) {
-      setMessage("Could not update password right now.");
-      return;
-    }
-
-    await syncUsersFromApi();
-    setResetRequest(null);
-    setResetStep("email");
-    goToPage("login");
-    setForm({ name: "", email, otp: "", password: "" });
-    setMessage("Password updated. Please log in.");
   };
 
   const logout = () => {
@@ -480,7 +516,7 @@ function App() {
     setCurrentUser(null);
     goToPage("login");
     setResetStep("email");
-    setResetRequest(null);
+    setRegisterStep("details");
     setForm({ name: "", email: "", otp: "", password: "" });
     setMessage("");
   };
@@ -754,7 +790,6 @@ function App() {
             goToPage("login", { replace: true });
           }
           setResetStep("email");
-          setResetRequest(null);
           setForm({ name: "", email: "", otp: "", password: "" });
           setMessage("");
         }}
@@ -772,9 +807,11 @@ function App() {
       <AuthPage
         form={form}
         isRegister={isRegister}
+        isRegisterOtpStep={isRegister && registerStep === "otp"}
         message={message}
         onChange={updateForm}
         onForgotPassword={openResetPassword}
+        onSendRegisterOtp={handleSendRegisterOtp}
         onSubmit={handleSubmit}
         onSwitchMode={switchMode}
       />
