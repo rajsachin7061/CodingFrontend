@@ -401,7 +401,7 @@ function App() {
     setMessage("");
   };
 
-  const handleSendResetOtp = (event) => {
+  const handleSendResetOtp = async (event) => {
     event.preventDefault();
 
     const email = form.email.trim().toLowerCase();
@@ -411,19 +411,26 @@ function App() {
       return;
     }
 
-    const matchedUser = users.find((user) => user.email === email);
+    try {
+      const response = await apiFetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    if (!matchedUser) {
-      setMessage("No account found with this email.");
-      return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessage(errorData.message || "Could not send OTP right now.");
+        return;
+      }
+
+      setResetRequest({ email });
+      setResetStep("otp");
+      setForm((current) => ({ ...current, email, otp: "", password: "" }));
+      setMessage(`OTP sent to ${email}. Please check your inbox.`);
+    } catch {
+      setMessage("Could not connect to server. Please try again.");
     }
-
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-
-    setResetRequest({ email, otp });
-    setResetStep("otp");
-    setForm((current) => ({ ...current, email, otp: "", password: "" }));
-    setMessage(`OTP sent to ${email}. Demo OTP: ${otp}`);
   };
 
   const handleResetPassword = async (event) => {
@@ -432,7 +439,6 @@ function App() {
     const email = form.email.trim().toLowerCase();
     const otp = form.otp.trim();
     const password = form.password;
-    const userIndex = users.findIndex((user) => user.email === email);
 
     if (!otp || !password) {
       setMessage("Please enter OTP and new password.");
@@ -444,35 +450,28 @@ function App() {
       return;
     }
 
-    if (resetRequest.otp !== otp) {
-      setMessage("OTP is incorrect. Please check and try again.");
-      return;
+    try {
+      const response = await apiFetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setMessage(errorData.message || "Could not update password right now.");
+        return;
+      }
+
+      await syncUsersFromApi();
+      setResetRequest(null);
+      setResetStep("email");
+      goToPage("login");
+      setForm({ name: "", email, otp: "", password: "" });
+      setMessage("Password updated. Please log in.");
+    } catch {
+      setMessage("Could not connect to server. Please try again.");
     }
-
-    const userToUpdate = users[userIndex];
-
-    if (!userToUpdate?.id) {
-      setMessage("Could not update password. User id is missing.");
-      return;
-    }
-
-    const response = await apiFetch(`/api/users/${userToUpdate.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    if (!response.ok) {
-      setMessage("Could not update password right now.");
-      return;
-    }
-
-    await syncUsersFromApi();
-    setResetRequest(null);
-    setResetStep("email");
-    goToPage("login");
-    setForm({ name: "", email, otp: "", password: "" });
-    setMessage("Password updated. Please log in.");
   };
 
   const logout = () => {
