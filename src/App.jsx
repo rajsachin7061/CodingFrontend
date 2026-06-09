@@ -17,6 +17,7 @@ import {
 } from "./pageRoutes";
 import "./App.css";
 
+
 const USERS_KEY = "onlineQuizUsers";
 const SESSION_KEY = "onlineQuizCurrentUser";
 const QUESTIONS_KEY = "onlineQuizQuestions";
@@ -66,7 +67,27 @@ const getDefaultStats = () => ({
   completedQuizzes: 0,
   bestScore: 0,
   categories: {},
+  contest: {
+    attempts: 0,
+    totalCorrect: 0,
+    totalQuestions: 0,
+    totalTimeSeconds: 0,
+    bestScore: 0,
+    bestAvgTimePerQuestion: 0,
+  },
+  contestByName: {},
 });
+
+const defaultContestSettings = {
+  contestName: "Weekly Contest",
+  contestQuestionCount: 10,
+  contestDurationSeconds: 600,
+  isScheduled: false,
+  startAt: null,
+  endAt: null,
+  selectedQuestionIds: [],
+  showLeaderboardToUsers: false,
+};
 
 const getDefaultResume = (user = {}) => ({
   template: "classic",
@@ -87,6 +108,11 @@ const normalizeUser = (user) => ({
     ...getDefaultStats(),
     ...(user.stats || {}),
     categories: user.stats?.categories || {},
+    contest: {
+      ...getDefaultStats().contest,
+      ...(user.stats?.contest || {}),
+    },
+    contestByName: user.stats?.contestByName || {},
   },
   resume: {
     ...getDefaultResume(user),
@@ -118,11 +144,13 @@ const getStoredQuestions = () => {
     return questions.map((question) => ({
       ...question,
       category: question.category || defaultQuizCategory,
+      section: question.section || "both",
     }));
   } catch {
     return defaultQuestions.map((question) => ({
       ...question,
       category: question.category || defaultQuizCategory,
+      section: question.section || "both",
     }));
   }
 };
@@ -145,6 +173,7 @@ function App() {
   const [users, setUsers] = useState(getStoredUsers);
   const [questions, setQuestions] = useState(getStoredQuestions);
   const [theme, setTheme] = useState(getStoredTheme);
+  const [contestSettings, setContestSettings] = useState(defaultContestSettings);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -179,6 +208,7 @@ function App() {
       ? apiQuestions.map((question) => ({
           ...question,
           category: question.category || defaultQuizCategory,
+          section: question.section || "both",
         }))
       : [];
   };
@@ -241,6 +271,7 @@ function App() {
       try {
         const apiUsers = await fetchUsersFromApi();
         const apiQuestions = await fetchQuestionsFromApi();
+        const apiContestSettings = await fetchContestSettingsFromApi();
 
         if (!isCancelled) {
           localStorage.setItem(USERS_KEY, JSON.stringify(apiUsers));
@@ -249,6 +280,10 @@ function App() {
 
         if (!isCancelled) {
           setQuestions(apiQuestions);
+        }
+
+        if (!isCancelled) {
+          setContestSettings(apiContestSettings);
         }
       } catch {
         // Keep local fallback when API is unavailable.
@@ -433,6 +468,20 @@ function App() {
     }
   };
 
+  const fetchContestSettingsFromApi = async () => {
+    const response = await apiFetch("/api/contest-settings");
+
+    if (!response.ok) {
+      throw new Error("Could not load contest settings.");
+    }
+
+    const settings = await response.json();
+    return {
+      ...defaultContestSettings,
+      ...(settings || {}),
+    };
+  };
+
   const handleResetPassword = async (event) => {
     event.preventDefault();
 
@@ -527,6 +576,41 @@ function App() {
     saveQuestions(questions.filter((_, index) => index !== questionIdOrIndex));
   };
 
+  const updateQuestion = async (questionId, updates) => {
+    const response = await apiFetch(`/api/questions/${questionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Could not update question.");
+    }
+
+    const updatedQuestions = await fetchQuestionsFromApi();
+    saveQuestions(updatedQuestions);
+  };
+
+  const updateContestSettings = async (updates) => {
+    const response = await apiFetch("/api/contest-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Could not update contest settings.");
+    }
+
+    const payload = await response.json();
+    setContestSettings({
+      ...defaultContestSettings,
+      ...(payload.settings || {}),
+    });
+  };
+
   const deleteUser = async (email) => {
     const user = users.find((item) => item.email === email);
 
@@ -574,7 +658,7 @@ function App() {
     }
   };
 
-  const recordQuizComplete = async ({ category, totalQuestions, score }) => {
+  const recordQuizComplete = async ({ category, totalQuestions, score, totalTimeSeconds = 0, contestName = "" }) => {
     if (!currentUser) {
       return;
     }
@@ -596,6 +680,15 @@ function App() {
       completed: 0,
       bestScore: 0,
     };
+    const nextCategorySolved = categoryStats.solved + totalQuestions;
+    const nextCategoryStats = {
+      ...categoryStats,
+      solved: nextCategorySolved,
+      correct: categoryStats.correct + score,
+      completed: categoryStats.completed + 1,
+      bestScore: Math.max(categoryStats.bestScore, score),
+    };
+
     const nextStats = {
       ...stats,
       totalSolved: stats.totalSolved + totalQuestions,
@@ -604,14 +697,54 @@ function App() {
       bestScore: Math.max(stats.bestScore, score),
       categories: {
         ...stats.categories,
-        [category]: {
-          solved: categoryStats.solved + totalQuestions,
-          correct: categoryStats.correct + score,
-          completed: categoryStats.completed + 1,
-          bestScore: Math.max(categoryStats.bestScore, score),
-        },
+        [category]: nextCategoryStats,
       },
+      contestByName: stats.contestByName || {},
     };
+
+    if (category === "Contest") {
+      const contestStats = stats.contest || getDefaultStats().contest;
+      const normalizedContestName = (contestName || contestSettings?.contestName || "Weekly Contest").trim();
+      const contestByNameStats = stats.contestByName || {};
+      const namedContestStats = contestByNameStats[normalizedContestName] || {
+        attempts: 0,
+        totalCorrect: 0,
+        totalQuestions: 0,
+        totalTimeSeconds: 0,
+        bestScore: 0,
+        bestAvgTimePerQuestion: 0,
+      };
+      const avgTimePerQuestion = totalQuestions ? totalTimeSeconds / totalQuestions : 0;
+      const bestAvgTimePerQuestion = contestStats.bestAvgTimePerQuestion || 0;
+      const namedBestAvgTimePerQuestion = namedContestStats.bestAvgTimePerQuestion || 0;
+
+      nextStats.contest = {
+        attempts: (contestStats.attempts || 0) + 1,
+        totalCorrect: (contestStats.totalCorrect || 0) + score,
+        totalQuestions: (contestStats.totalQuestions || 0) + totalQuestions,
+        totalTimeSeconds: (contestStats.totalTimeSeconds || 0) + totalTimeSeconds,
+        bestScore: Math.max(contestStats.bestScore || 0, score),
+        bestAvgTimePerQuestion:
+          bestAvgTimePerQuestion === 0
+            ? avgTimePerQuestion
+            : Math.min(bestAvgTimePerQuestion, avgTimePerQuestion),
+      };
+
+      nextStats.contestByName = {
+        ...contestByNameStats,
+        [normalizedContestName]: {
+          attempts: (namedContestStats.attempts || 0) + 1,
+          totalCorrect: (namedContestStats.totalCorrect || 0) + score,
+          totalQuestions: (namedContestStats.totalQuestions || 0) + totalQuestions,
+          totalTimeSeconds: (namedContestStats.totalTimeSeconds || 0) + totalTimeSeconds,
+          bestScore: Math.max(namedContestStats.bestScore || 0, score),
+          bestAvgTimePerQuestion:
+            namedBestAvgTimePerQuestion === 0
+              ? avgTimePerQuestion
+              : Math.min(namedBestAvgTimePerQuestion, avgTimePerQuestion),
+        },
+      };
+    }
 
     const response = await apiFetch(`/api/users/${user.id}`, {
       method: "PATCH",
@@ -670,6 +803,7 @@ function App() {
     return (
       <AdminPanel
         backLabel={currentUser ? "Quiz" : "Login"}
+        contestSettings={contestSettings}
         onAddQuestion={addQuestion}
         onBackToQuiz={closeAdminPanel}
         onDeleteQuestion={deleteQuestion}
@@ -677,6 +811,8 @@ function App() {
         onLogout={logoutAdmin}
         onToggleTheme={toggleTheme}
         onToggleUserBlock={toggleUserBlock}
+        onUpdateContestSettings={updateContestSettings}
+        onUpdateQuestion={updateQuestion}
         onUpdateUser={updateUser}
         questions={questions}
         theme={theme}
@@ -701,12 +837,15 @@ function App() {
           routeCategory={routeCategory}
           theme={theme}
           user={activeUser}
+          users={users}
           userBlocked={isCurrentUserBlocked}
+          contestSettings={contestSettings}
           onChangePractice={() => goToPage("quiz")}
           onSelectCategory={goToQuizCategory}
         />
       ) : (
         <UserDetail
+          contestSettings={contestSettings}
           onBackToQuiz={() => {
             if (window.history.length > 1) {
               navigate(-1);
@@ -721,6 +860,7 @@ function App() {
           section={mode}
           theme={theme}
           user={activeUser}
+          users={users}
         />
       );
     }
@@ -734,7 +874,9 @@ function App() {
         routeCategory={routeCategory}
         theme={theme}
         user={activeUser}
+        users={users}
         userBlocked={isCurrentUserBlocked}
+        contestSettings={contestSettings}
         onChangePractice={() => goToPage("quiz")}
         onSelectCategory={goToQuizCategory}
       />

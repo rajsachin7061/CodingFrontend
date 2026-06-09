@@ -1,9 +1,10 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
-import quizCategories from "./QuizCategories";
+import { useEffect, useMemo, useState } from "react";
+import javaCertificateImage from "../Imaige/certificate100.png";
 import UserMenu from "./UserMenu";
 
 const getInitial = (name = "") => name.trim().charAt(0).toUpperCase() || "U";
+const JAVA_CERTIFICATE_REQUIREMENT = 100;
 
 const resumeTemplates = [
   { id: "classic", label: "Classic" },
@@ -11,39 +12,21 @@ const resumeTemplates = [
   { id: "compact", label: "Compact" },
 ];
 
-const getCertificates = (user) => {
-  const stats = user.stats || {};
-  const certificates = [];
-
-  if ((stats.totalSolved || 0) >= 1) {
-    certificates.push({
-      title: "Practice Starter",
-      text: "Completed the first quiz practice set.",
-    });
-  }
-
-  if ((stats.totalSolved || 0) >= 10) {
-    certificates.push({
-      title: "Question Solver",
-      text: "Solved 10 or more quiz questions.",
-    });
-  }
-
-  quizCategories.forEach((category) => {
-    if ((stats.categories?.[category]?.completed || 0) > 0) {
-      certificates.push({
-        title: `${category} Practice`,
-        text: `Completed a ${category} practice quiz.`,
-      });
-    }
-  });
-
-  return certificates;
-};
+const getJavaSolvedCount = (user) => user.stats?.categories?.Java?.solved || 0;
+const formatCertificateDate = (date = new Date()) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+    .format(date)
+    .replace(/\//g, "-");
 
 function UserDetail({
   section = "profile",
   user,
+  users = [],
+  contestSettings = {},
   theme,
   onBackToQuiz,
   onLogout,
@@ -59,7 +42,37 @@ function UserDetail({
   });
   const [message, setMessage] = useState("");
   const stats = user.stats || {};
-  const certificates = getCertificates(user);
+  const contestName = (contestSettings?.contestName || "Weekly Contest").trim();
+  const showPublishedLeaderboard = Boolean(contestSettings?.showLeaderboardToUsers);
+  const javaSolvedCount = getJavaSolvedCount(user);
+  const javaCertificateDate = formatCertificateDate();
+  const isJavaCertificateUnlocked = javaSolvedCount >= JAVA_CERTIFICATE_REQUIREMENT;
+  const javaCertificateProgress = Math.min(
+    100,
+    Math.round((javaSolvedCount / JAVA_CERTIFICATE_REQUIREMENT) * 100),
+  );
+  const contestLeaderboard = useMemo(
+    () =>
+      users
+        .map((item) => {
+          const contest =
+            item.stats?.contestByName?.[contestName] ||
+            item.stats?.contest ||
+            {};
+          const totalQuestions = contest.totalQuestions || 0;
+          const avg = totalQuestions ? (contest.totalTimeSeconds || 0) / totalQuestions : Number.POSITIVE_INFINITY;
+          return {
+            name: item.name,
+            totalCorrect: contest.totalCorrect || 0,
+            avgTimePerQuestion: avg,
+            attempts: contest.attempts || 0,
+          };
+        })
+        .filter((item) => item.attempts > 0)
+        .sort((a, b) => (b.totalCorrect - a.totalCorrect) || (a.avgTimePerQuestion - b.avgTimePerQuestion))
+        .slice(0, 5),
+    [contestName, users],
+  );
 
   useEffect(() => {
     setDraft({
@@ -141,6 +154,49 @@ function UserDetail({
     setMessage("Resume saved successfully.");
   };
 
+  const downloadJavaCertificate = () => {
+    if (!isJavaCertificateUnlocked) {
+      return;
+    }
+
+    const certificateImage = new Image();
+    certificateImage.crossOrigin = "anonymous";
+
+    certificateImage.onload = () => {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const certificateName = user.name || "Student";
+
+      canvas.width = certificateImage.naturalWidth;
+      canvas.height = certificateImage.naturalHeight;
+      context.drawImage(certificateImage, 0, 0);
+
+      context.fillStyle = "#f9f3e6";
+      context.fillRect(canvas.width * 0.29, canvas.height * 0.32, canvas.width * 0.42, canvas.height * 0.08);
+      context.fillRect(canvas.width * 0.11, canvas.height * 0.8, canvas.width * 0.24, canvas.height * 0.07);
+
+      context.fillStyle = "#111111";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.font = `700 ${Math.max(42, canvas.width * 0.038)}px Georgia, serif`;
+      context.fillText(certificateName, canvas.width * 0.5, canvas.height * 0.36, canvas.width * 0.4);
+
+      context.font = `700 ${Math.max(30, canvas.width * 0.028)}px Georgia, serif`;
+      context.fillText(javaCertificateDate, canvas.width * 0.22, canvas.height * 0.827, canvas.width * 0.22);
+
+      const link = document.createElement("a");
+      link.download = `java-100-problems-certificate-${certificateName
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "student"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+
+    certificateImage.src = javaCertificateImage;
+  };
+
   const renderAvatar = (className = "profile-photo-large") =>
     draft.photo || user.photo ? (
       <img alt={`${user.name} profile`} className={className} src={draft.photo || user.photo} />
@@ -203,6 +259,21 @@ function UserDetail({
                 <strong>{stats.completedQuizzes || 0}</strong>
               </div>
             </div>
+            {showPublishedLeaderboard && (
+              <div className="detail-list" aria-label="Published contest leaderboard">
+                <h2>{contestName} LeaderBoard</h2>
+                {contestLeaderboard.length ? (
+                  contestLeaderboard.map((row, index) => (
+                    <div key={`${row.name}-${index}`}>
+                      <strong>#{index + 1} {row.name}</strong>
+                      <span>{row.totalCorrect} correct | {row.avgTimePerQuestion.toFixed(2)}s avg</span>
+                    </div>
+                  ))
+                ) : (
+                  <p>No leaderboard data available yet.</p>
+                )}
+              </div>
+            )}
             <div className="result-actions">
               <button className="secondary-action" onClick={onLogout} type="button">
                 Logout
@@ -261,23 +332,58 @@ function UserDetail({
         )}
 
         {section === "certificate" && (
-          <div className="certificate-grid">
-            {certificates.length ? (
-              certificates.map((certificate) => (
-                <div className="account-card certificate-card" key={certificate.title}>
-                  <span>Certificate</span>
-                  <strong>{certificate.title}</strong>
-                  <p>{certificate.text}</p>
-                  <small>Awarded to {user.name}</small>
-                </div>
-              ))
-            ) : (
-              <div className="account-card">
-                <span>No certificate yet</span>
-                <strong>Start practicing</strong>
-                <p>Complete a quiz to unlock your first certificate.</p>
+          <div className="certificate-grid java-certificate-grid">
+            <article
+              className={`account-card certificate-card java-certificate-card ${
+                isJavaCertificateUnlocked ? "unlocked" : "locked"
+              }`}
+            >
+              <div className="certificate-preview">
+                <img alt="Java 100 problems certificate" src={javaCertificateImage} />
+                <span className="certificate-overlay-name">{user.name}</span>
+                <span className="certificate-overlay-date">{javaCertificateDate}</span>
+                {!isJavaCertificateUnlocked && (
+                  <div className="certificate-lock">
+                    <span>Locked</span>
+                    <strong>{JAVA_CERTIFICATE_REQUIREMENT - javaSolvedCount} problems left</strong>
+                  </div>
+                )}
               </div>
-            )}
+
+              <div className="certificate-content">
+                <span>{isJavaCertificateUnlocked ? "Certificate Unlocked" : "Certificate Locked"}</span>
+                <strong>Java 100 Problems Certificate</strong>
+                <p>
+                  {isJavaCertificateUnlocked
+                    ? `Awarded to ${user.name} for completing 100 Java practice problems.`
+                    : `Solve ${JAVA_CERTIFICATE_REQUIREMENT} Java practice problems to unlock and download this certificate.`}
+                </p>
+                <div className="certificate-progress" aria-label="Java certificate progress">
+                  <div>
+                    <span>Java solved</span>
+                    <strong>
+                      {Math.min(javaSolvedCount, JAVA_CERTIFICATE_REQUIREMENT)}/{JAVA_CERTIFICATE_REQUIREMENT}
+                    </strong>
+                  </div>
+                  <div className="certificate-progress-track">
+                    <span style={{ width: `${javaCertificateProgress}%` }} />
+                  </div>
+                </div>
+                {isJavaCertificateUnlocked ? (
+                  <button
+                    className="primary-action certificate-download"
+                    onClick={downloadJavaCertificate}
+                    type="button"
+                  >
+                    Download Certificate
+                  </button>
+                ) : (
+                  <button className="primary-action certificate-download" disabled type="button">
+                    Download Locked
+                  </button>
+                )}
+              </div>
+            </article>
           </div>
         )}
 
