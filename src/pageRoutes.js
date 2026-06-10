@@ -1,6 +1,7 @@
 import { getQuizCategoryBySlug } from "./Components/QuizCategories";
 
 export const pageRoutes = {
+  landing: "/",
   login: "/login",
   register: "/register",
   reset: "/reset-password",
@@ -14,8 +15,8 @@ export const pageRoutes = {
 };
 
 const pathToPage = {
-  "/": "login",
-  "/index.html": "login",
+  "/": "landing",
+  "/index.html": "landing",
   [pageRoutes.login]: "login",
   [pageRoutes.register]: "register",
   [pageRoutes.reset]: "reset",
@@ -50,7 +51,7 @@ export const getAllowedPage = (pathname, currentUser) => {
     return "login";
   }
 
-  if ((page === "login" || page === "register" || page === "reset") && currentUser) {
+  if ((page === "landing" || page === "login" || page === "register" || page === "reset") && currentUser) {
     return "quiz";
   }
 

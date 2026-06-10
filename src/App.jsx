@@ -4,6 +4,7 @@ import { adminAccessUser } from "./Components/AdminAccess";
 import AdminLogin from "./Components/AdminLogin";
 import AdminPanel from "./Components/AdminPanel";
 import AuthPage from "./Components/AuthPage";
+import LandingPage from "./Components/LandingPage/LandingPage";
 import Quiz from "./Components/Quiz";
 import { defaultQuizCategory, getQuizCategoryPath } from "./Components/QuizCategories";
 import defaultQuestions from "./Components/Question.jsx";
@@ -126,6 +127,10 @@ const getStoredUsers = () => {
   } catch {
     return [];
   }
+};
+
+const saveStoredUsers = (nextUsers) => {
+  localStorage.setItem(USERS_KEY, JSON.stringify(nextUsers.map(normalizeUser)));
 };
 
 const getStoredSession = () => {
@@ -349,6 +354,52 @@ function App() {
     goToPage("quiz");
   };
 
+  const registerLocalUser = ({ name, email, password }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUsers = getStoredUsers();
+
+    if (existingUsers.some((user) => user.email === normalizedEmail)) {
+      setMessage("This email is already registered.");
+      return null;
+    }
+
+    const newUser = normalizeUser({
+      id: `local-${Date.now()}`,
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      username: makeUsername(name, normalizedEmail),
+      stats: getDefaultStats(),
+      resume: getDefaultResume({ name, email: normalizedEmail }),
+    });
+    const nextUsers = [...existingUsers, newUser];
+
+    saveStoredUsers(nextUsers);
+    setUsers(nextUsers);
+    return newUser;
+  };
+
+  const loginLocalUser = ({ email, password }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const localUsers = getStoredUsers();
+    const user = localUsers.find(
+      (item) => item.email === normalizedEmail && item.password === password,
+    );
+
+    if (!user) {
+      setMessage("Email or password is incorrect.");
+      return null;
+    }
+
+    if (user.blocked) {
+      setMessage("Your account is blocked. Please contact the admin.");
+      return null;
+    }
+
+    setUsers(localUsers);
+    return user;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -378,6 +429,15 @@ function App() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          if (response.status >= 500) {
+            const localUser = registerLocalUser({ name, email, password });
+
+            if (localUser) {
+              identifyUser(localUser);
+            }
+            return;
+          }
+
           setMessage(errorData.message || "Could not create account.");
           return;
         }
@@ -389,7 +449,11 @@ function App() {
           identifyUser(newUser);
         }
       } catch {
-        setMessage("Could not connect to server. Please try again.");
+        const localUser = registerLocalUser({ name, email, password });
+
+        if (localUser) {
+          identifyUser(localUser);
+        }
       }
       return;
     }
@@ -403,6 +467,15 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status >= 500) {
+          const localUser = loginLocalUser({ email, password });
+
+          if (localUser) {
+            identifyUser(localUser);
+          }
+          return;
+        }
+
         setMessage(errorData.message || "Email or password is incorrect.");
         return;
       }
@@ -418,7 +491,11 @@ function App() {
       await syncUsersFromApi();
       identifyUser(loggedInUser);
     } catch {
-      setMessage("Could not connect to server. Please try again.");
+      const localUser = loginLocalUser({ email, password });
+
+      if (localUser) {
+        identifyUser(localUser);
+      }
     }
   };
 
@@ -821,6 +898,15 @@ function App() {
     );
   }
 
+  if (mode === "landing") {
+    return (
+      <LandingPage
+        onLogin={() => goToPage("login")}
+        onSignup={() => goToPage("register")}
+      />
+    );
+  }
+
   if (currentUser) {
     const currentUserRecord = getCurrentUserRecord();
     const isCurrentUserBlocked = Boolean(currentUserRecord?.blocked);
@@ -939,7 +1025,7 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
-      <Route path="*" element={<Navigate to={currentUser ? pageRoutes.quiz : pageRoutes.login} replace />} />
+      <Route path="*" element={<Navigate to={currentUser ? pageRoutes.quiz : pageRoutes.landing} replace />} />
     </Routes>
   );
 }
