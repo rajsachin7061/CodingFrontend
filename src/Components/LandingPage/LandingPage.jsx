@@ -6,7 +6,7 @@ import quizeImg from "./imaiges/quize.png";
 import Slider from "./Slider";
 import "./landing.css";
 import "./slider.css";
-import Footer from "./footer.jsx";
+import Footer from "./Footer.jsx";
 
 const Page = ({ onLogin, onSignup }) => {
   const images = useMemo(
