@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import logoImg from "./imaiges/logo.png";
 import webImg from "./imaiges/landingImaige.png";
 import contestImg from "./imaiges/contest.png";
 import quizeImg from "./imaiges/quize.png";
@@ -7,16 +8,19 @@ import "./landing.css";
 import "./slider.css";
 
 const Page = ({ onLogin, onSignup }) => {
-  const images = useMemo(() => [
-    {
-      image: contestImg,
-      name: "contest",
-    },
-    {
-      image: quizeImg,
-      name: "quize",
-    },
-  ], []);
+  const images = useMemo(
+    () => [
+      {
+        image: contestImg,
+        name: "contest",
+      },
+      {
+        image: quizeImg,
+        name: "quize",
+      },
+    ],
+    [],
+  );
 
   const [current, setCurrent] = useState(0);
 
@@ -44,33 +48,53 @@ const Page = ({ onLogin, onSignup }) => {
     });
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleToggleMenu = () => setMenuOpen((open) => !open);
+  const closeMenu = () => setMenuOpen(false);
+
   return (
     <div>
       {/* Navbar */}
-      <div className="w-full bg-indigo-200 flex items-center justify-between px-6 py-0.5">
-        <div className="bg-indigo-300 px-4 py-2 rounded">
-          <h1 className="font-bold text-xl">Coding Snipers</h1>
+      <div className="navbar">
+        <div className="logo-box">
+          <img src={logoImg} alt="web" />
+          {/* <h1 className="logo">Coding Snipers</h1> */}
         </div>
 
-        <div>
-          <ul className="flex gap-6 items-center">
-            <li className="cursor-pointer">Course</li>
-            <li className="cursor-pointer">Practice</li>
-            <li className="cursor-pointer">Problem</li>
-            <li className="cursor-pointer">Game</li>
+        <button
+          className="nav-toggle"
+          type="button"
+          aria-expanded={menuOpen}
+          aria-label="Toggle navigation"
+          onClick={handleToggleMenu}
+        >
+          ☰
+        </button>
 
+        <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
+          <ul className="nav-links">
+            <li onClick={closeMenu}>Course</li>
+            <li onClick={closeMenu}>Practice</li>
+            <li onClick={closeMenu}>Problem</li>
+            <li onClick={closeMenu}>Game</li>
             <li
-              className="px-3 py-2 bg-indigo-700 text-white font-bold rounded cursor-pointer"
-              onClick={onLogin}
+              className="nav-action"
+              onClick={() => {
+                closeMenu();
+                onLogin();
+              }}
             >
-              Login
+              <button class="button">Login</button>
             </li>
-
             <li
-              className="px-3 py-2 bg-indigo-700 text-white font-bold rounded cursor-pointer"
-              onClick={onSignup}
+              className="nav-action"
+              onClick={() => {
+                closeMenu();
+                onSignup();
+              }}
             >
-              Signup
+             <button class="button">Signup</button> 
             </li>
           </ul>
         </div>
