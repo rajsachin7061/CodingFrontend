@@ -1,6 +1,5 @@
 .landigepage_imaige {
   width: 100%;
-  min-width: 0;
   display: flex;
   justify-content: center;
   position: relative;
@@ -11,7 +10,8 @@
   width: 100%;
   min-width: 320px;
   max-width: 1400px;
-  height: 670px;
+  height: auto;
+  min-height: 80px;
   padding: 5px 0;
 }
 
