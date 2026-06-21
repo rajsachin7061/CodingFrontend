@@ -6,6 +6,7 @@ export const pageRoutes = {
   register: "/register",
   reset: "/reset-password",
   quiz: "/quiz",
+  compiler: "/compiler",
   profile: "/profile",
   editProfile: "/profile/edit",
   certificate: "/profile/certificate",
@@ -21,6 +22,7 @@ const pathToPage = {
   [pageRoutes.register]: "register",
   [pageRoutes.reset]: "reset",
   [pageRoutes.quiz]: "quiz",
+  [pageRoutes.compiler]: "compiler",
   [pageRoutes.profile]: "profile",
   [pageRoutes.editProfile]: "editProfile",
   [pageRoutes.certificate]: "certificate",
@@ -45,7 +47,7 @@ export const getRequestedPageFromPath = (pathname) => {
 
 export const getAllowedPage = (pathname, currentUser) => {
   const page = getRequestedPageFromPath(pathname);
-  const protectedPages = ["quiz", "profile", "editProfile", "certificate", "resume", "logout"];
+  const protectedPages = ["quiz", "compiler", "profile", "editProfile", "certificate", "resume", "logout"];
 
   if (protectedPages.includes(page) && !currentUser) {
     return "login";

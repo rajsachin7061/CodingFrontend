@@ -166,27 +166,33 @@ function Quiz({
     }
 
     const isCorrect = option === currentQuestion.answer;
-    const nextScore = isCorrect ? score + 1 : score;
 
     setSelectedAnswer(option);
-    setScore(nextScore);
+    if (isCorrect) {
+      setScore((current) => current + 1);
+    }
+  };
 
-    window.setTimeout(() => {
-      const next = index + 1;
-      if (next < practiceQuestions.length) {
-        setIndex(next);
-        setSelectedAnswer("");
-      } else if (isContest) {
-        finishContestAttempt(nextScore, contestElapsedSeconds);
-      } else {
-        onPracticeComplete({
-          category: selectedCategory,
-          totalQuestions: practiceQuestions.length,
-          score: nextScore,
-        });
-        setIsFinished(true);
-      }
-    }, 500);
+  const goToNextQuestion = () => {
+    if (!selectedAnswer) {
+      return;
+    }
+
+    const next = index + 1;
+
+    if (next < practiceQuestions.length) {
+      setIndex(next);
+      setSelectedAnswer("");
+    } else if (isContest) {
+      finishContestAttempt(score, contestElapsedSeconds);
+    } else {
+      onPracticeComplete({
+        category: selectedCategory,
+        totalQuestions: practiceQuestions.length,
+        score,
+      });
+      setIsFinished(true);
+    }
   };
 
   const restartQuiz = () => {
@@ -248,7 +254,7 @@ function Quiz({
         <section className="hero-panel">
           <div className="hero-copy">
             <p className="eyebrow">Quick brain workout</p>
-            <h1>Online Quiz</h1>
+            <h1>Code Snipers</h1>
             <p className="hero-text"><strong>{contestName}</strong></p>
             <p className="hero-text">Contest uses one full timer for the entire exam. You can see remaining exam time live.</p>
             {isBeforeContest && (
@@ -285,7 +291,7 @@ function Quiz({
               )}
             </div>
             <div className="practice-panel">
-              <strong>Quiz Categories</strong>
+              <strong>Practice Categories</strong>
               <div className="practice-grid">
                 {quizCategories.map((category) => {
                   const count = getQuestionCount(category);
@@ -386,6 +392,11 @@ function Quiz({
               </button>
             );
           })}
+        </div>
+        <div className="result-actions">
+          <button className="primary-action" disabled={!selectedAnswer} onClick={goToNextQuestion} type="button">
+            {index + 1 < practiceQuestions.length ? "Next" : "Finish"}
+          </button>
         </div>
       </section>
     </main>

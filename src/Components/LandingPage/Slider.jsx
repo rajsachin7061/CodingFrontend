@@ -86,14 +86,8 @@ function Slider() {
 
               <div className="card-content">
                 <h2 className="name">{card.name}</h2>
-
-                <p className="descrpition">
-                  This Lorem text the section
-                  <br />
-                  that contains header with
-                  <br />
-                  having open functionality.
-                </p>
+                  
+                  <h4>300 Problems</h4>
 
                 <button className="button">View More</button>
               </div>

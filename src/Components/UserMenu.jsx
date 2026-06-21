@@ -10,6 +10,7 @@ function UserMenu({ onLogout, user }) {
   const menuId = useId();
   const menuRef = useRef(null);
   const menuItems = [
+    { label: "Code Compiler", page: "compiler" },
     { label: "My Profile", page: "profile" },
     { label: "Edit Profile", page: "editProfile" },
     { label: "My Certificate", page: "certificate" },

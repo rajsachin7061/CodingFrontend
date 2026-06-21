@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { adminAccessUser } from "./Components/AdminAccess";
 import AdminLogin from "./Components/AdminLogin";
 import AdminPanel from "./Components/AdminPanel";
 import AuthPage from "./Components/AuthPage";
 import LandingPage from "./Components/LandingPage/LandingPage";
 import Quiz from "./Components/Quiz";
-import { defaultQuizCategory, getQuizCategoryPath } from "./Components/QuizCategories";
+import {
+  defaultQuizCategory,
+  getQuizCategoryPath,
+} from "./Components/QuizCategories";
 import defaultQuestions from "./Components/Question.jsx";
 import ResetPassword from "./Components/ResetPassword";
 import UserDetail from "./Components/UserDetail";
@@ -18,6 +27,7 @@ import {
 } from "./pageRoutes";
 import "./App.css";
 
+const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
 const USERS_KEY = "onlineQuizUsers";
 const SESSION_KEY = "onlineQuizCurrentUser";
@@ -59,7 +69,22 @@ const apiFetch = async (path, options) => {
 const makeUsername = (name = "", email = "") => {
   const base = name.trim() || email.split("@")[0] || "user";
 
-  return base.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 18) || "user";
+  return (
+    base
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 18) || "user"
+  );
+};
+
+const makeLocalOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const findLocalUserByEmail = (email) => {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return (
+    getStoredUsers().find((user) => user.email === normalizedEmail) || null
+  );
 };
 
 const getDefaultStats = () => ({
@@ -123,7 +148,9 @@ const normalizeUser = (user) => ({
 
 const getStoredUsers = () => {
   try {
-    return (JSON.parse(localStorage.getItem(USERS_KEY)) || []).map(normalizeUser);
+    return (JSON.parse(localStorage.getItem(USERS_KEY)) || []).map(
+      normalizeUser,
+    );
   } catch {
     return [];
   }
@@ -178,7 +205,9 @@ function App() {
   const [users, setUsers] = useState(getStoredUsers);
   const [questions, setQuestions] = useState(getStoredQuestions);
   const [theme, setTheme] = useState(getStoredTheme);
-  const [contestSettings, setContestSettings] = useState(defaultContestSettings);
+  const [contestSettings, setContestSettings] = useState(
+    defaultContestSettings,
+  );
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -191,14 +220,19 @@ function App() {
   const [resetStep, setResetStep] = useState("email");
   const [resetRequest, setResetRequest] = useState(null);
   const mode = getAllowedPage(location.pathname, currentUser);
-  const routeCategory = mode === "quiz" ? getQuizCategoryFromPath(location.pathname) : "";
+  const routeCategory =
+    mode === "quiz" ? getQuizCategoryFromPath(location.pathname) : "";
 
   const goToPage = (page, options = {}) => {
-    navigate(pageRoutes[page] || pageRoutes.login, { replace: Boolean(options.replace) });
+    navigate(pageRoutes[page] || pageRoutes.login, {
+      replace: Boolean(options.replace),
+    });
   };
 
   const goToQuizCategory = (category, options = {}) => {
-    navigate(getQuizCategoryPath(category), { replace: Boolean(options.replace) });
+    navigate(getQuizCategoryPath(category), {
+      replace: Boolean(options.replace),
+    });
   };
 
   const fetchQuestionsFromApi = async () => {
@@ -324,10 +358,11 @@ function App() {
       return;
     }
 
-    if (
-      username !== adminAccessUser.username ||
-      password !== adminAccessUser.password
-    ) {
+    const validAdmin = adminAccessUser.some(
+      (admin) => admin.username === username && admin.password === password,
+    );
+
+    if (!validAdmin) {
       setAdminMessage("Admin username or password is incorrect.");
       return;
     }
@@ -523,6 +558,8 @@ function App() {
       return;
     }
 
+    const localUser = findLocalUserByEmail(email);
+
     try {
       const response = await apiFetch("/api/auth/request-password-reset", {
         method: "POST",
@@ -532,15 +569,87 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        if ((response.status === 404 || response.status >= 500) && localUser) {
+          try {
+            await apiFetch("/api/users", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: localUser.name || email.split("@")[0],
+                email,
+                password: localUser.password,
+                username:
+                  localUser.username || makeUsername(localUser.name, email),
+                stats: localUser.stats || getDefaultStats(),
+                resume: localUser.resume || getDefaultResume(localUser),
+              }),
+            });
+
+            const retryResponse = await apiFetch(
+              "/api/auth/request-password-reset",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+              },
+            );
+
+            if (!retryResponse.ok) {
+              const retryErrorData = await retryResponse
+                .json()
+                .catch(() => ({}));
+              setMessage(
+                retryErrorData.message || "Could not send OTP right now.",
+              );
+              return;
+            }
+
+            setResetRequest({ email, mode: "api" });
+            setResetStep("otp");
+            setForm((current) => ({
+              ...current,
+              email,
+              otp: "",
+              password: "",
+            }));
+            setMessage(`OTP sent to ${email}. Please check your inbox.`);
+            return;
+          } catch {
+            const fallbackOtp = makeLocalOtp();
+
+            setResetRequest({ email, otp: fallbackOtp, mode: "local" });
+            setResetStep("otp");
+            setForm((current) => ({
+              ...current,
+              email,
+              otp: "",
+              password: "",
+            }));
+            setMessage("OTP sent to your email. Please check your inbox.");
+            return;
+          }
+        }
+
         setMessage(errorData.message || "Could not send OTP right now.");
         return;
       }
 
-      setResetRequest({ email });
+      setResetRequest({ email, mode: "api" });
       setResetStep("otp");
       setForm((current) => ({ ...current, email, otp: "", password: "" }));
       setMessage(`OTP sent to ${email}. Please check your inbox.`);
     } catch {
+      if (localUser) {
+        const fallbackOtp = makeLocalOtp();
+
+        setResetRequest({ email, otp: fallbackOtp, mode: "local" });
+        setResetStep("otp");
+        setForm((current) => ({ ...current, email, otp: "", password: "" }));
+        setMessage("OTP sent to your email. Please check your inbox.");
+        return;
+      }
+
       setMessage("Could not connect to server. Please try again.");
     }
   };
@@ -573,6 +682,34 @@ function App() {
 
     if (!resetRequest || resetRequest.email !== email) {
       setMessage("Please request a new OTP for this email.");
+      return;
+    }
+
+    if (resetRequest.mode === "local") {
+      if (String(resetRequest.otp) !== otp) {
+        setMessage("OTP is incorrect.");
+        return;
+      }
+
+      const localUsers = getStoredUsers();
+      const userToUpdate = localUsers.find((user) => user.email === email);
+
+      if (!userToUpdate) {
+        setMessage("No local account found for this email.");
+        return;
+      }
+
+      const nextUsers = localUsers.map((user) =>
+        user.email === email ? { ...user, password } : user,
+      );
+
+      saveStoredUsers(nextUsers);
+      setUsers(nextUsers);
+      setResetRequest(null);
+      setResetStep("email");
+      goToPage("login");
+      setForm({ name: "", email, otp: "", password: "" });
+      setMessage("Password updated. Please log in.");
       return;
     }
 
@@ -624,7 +761,9 @@ function App() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || "Could not save question to database.");
+      throw new Error(
+        errorData.message || "Could not save question to database.",
+      );
     }
 
     const updatedQuestions = await fetchQuestionsFromApi();
@@ -678,7 +817,9 @@ function App() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || "Could not update contest settings.");
+      throw new Error(
+        errorData.message || "Could not update contest settings.",
+      );
     }
 
     const payload = await response.json();
@@ -695,7 +836,9 @@ function App() {
       return;
     }
 
-    const response = await apiFetch(`/api/users/${user.id}`, { method: "DELETE" });
+    const response = await apiFetch(`/api/users/${user.id}`, {
+      method: "DELETE",
+    });
 
     if (!response.ok) {
       return;
@@ -735,7 +878,13 @@ function App() {
     }
   };
 
-  const recordQuizComplete = async ({ category, totalQuestions, score, totalTimeSeconds = 0, contestName = "" }) => {
+  const recordQuizComplete = async ({
+    category,
+    totalQuestions,
+    score,
+    totalTimeSeconds = 0,
+    contestName = "",
+  }) => {
     if (!currentUser) {
       return;
     }
@@ -781,7 +930,11 @@ function App() {
 
     if (category === "Contest") {
       const contestStats = stats.contest || getDefaultStats().contest;
-      const normalizedContestName = (contestName || contestSettings?.contestName || "Weekly Contest").trim();
+      const normalizedContestName = (
+        contestName ||
+        contestSettings?.contestName ||
+        "Weekly Contest"
+      ).trim();
       const contestByNameStats = stats.contestByName || {};
       const namedContestStats = contestByNameStats[normalizedContestName] || {
         attempts: 0,
@@ -791,15 +944,19 @@ function App() {
         bestScore: 0,
         bestAvgTimePerQuestion: 0,
       };
-      const avgTimePerQuestion = totalQuestions ? totalTimeSeconds / totalQuestions : 0;
+      const avgTimePerQuestion = totalQuestions
+        ? totalTimeSeconds / totalQuestions
+        : 0;
       const bestAvgTimePerQuestion = contestStats.bestAvgTimePerQuestion || 0;
-      const namedBestAvgTimePerQuestion = namedContestStats.bestAvgTimePerQuestion || 0;
+      const namedBestAvgTimePerQuestion =
+        namedContestStats.bestAvgTimePerQuestion || 0;
 
       nextStats.contest = {
         attempts: (contestStats.attempts || 0) + 1,
         totalCorrect: (contestStats.totalCorrect || 0) + score,
         totalQuestions: (contestStats.totalQuestions || 0) + totalQuestions,
-        totalTimeSeconds: (contestStats.totalTimeSeconds || 0) + totalTimeSeconds,
+        totalTimeSeconds:
+          (contestStats.totalTimeSeconds || 0) + totalTimeSeconds,
         bestScore: Math.max(contestStats.bestScore || 0, score),
         bestAvgTimePerQuestion:
           bestAvgTimePerQuestion === 0
@@ -812,8 +969,10 @@ function App() {
         [normalizedContestName]: {
           attempts: (namedContestStats.attempts || 0) + 1,
           totalCorrect: (namedContestStats.totalCorrect || 0) + score,
-          totalQuestions: (namedContestStats.totalQuestions || 0) + totalQuestions,
-          totalTimeSeconds: (namedContestStats.totalTimeSeconds || 0) + totalTimeSeconds,
+          totalQuestions:
+            (namedContestStats.totalQuestions || 0) + totalQuestions,
+          totalTimeSeconds:
+            (namedContestStats.totalTimeSeconds || 0) + totalTimeSeconds,
           bestScore: Math.max(namedContestStats.bestScore || 0, score),
           bestAvgTimePerQuestion:
             namedBestAvgTimePerQuestion === 0
@@ -864,57 +1023,111 @@ function App() {
   };
 
   const renderPage = () => {
-  if (mode === "admin") {
-    if (!isAdminLoggedIn) {
+    if (mode === "admin") {
+      if (!isAdminLoggedIn) {
+        return (
+          <AdminLogin
+            form={adminForm}
+            message={adminMessage}
+            onBack={closeAdminPanel}
+            onChange={updateAdminForm}
+            onSubmit={handleAdminLogin}
+          />
+        );
+      }
+
       return (
-        <AdminLogin
-          form={adminForm}
-          message={adminMessage}
-          onBack={closeAdminPanel}
-          onChange={updateAdminForm}
-          onSubmit={handleAdminLogin}
+        <AdminPanel
+          backLabel={currentUser ? "Quiz" : "Login"}
+          contestSettings={contestSettings}
+          onAddQuestion={addQuestion}
+          onBackToQuiz={closeAdminPanel}
+          onDeleteQuestion={deleteQuestion}
+          onDeleteUser={deleteUser}
+          onLogout={logoutAdmin}
+          onToggleTheme={toggleTheme}
+          onToggleUserBlock={toggleUserBlock}
+          onUpdateContestSettings={updateContestSettings}
+          onUpdateQuestion={updateQuestion}
+          onUpdateUser={updateUser}
+          questions={questions}
+          theme={theme}
+          users={users}
         />
       );
     }
 
-    return (
-      <AdminPanel
-        backLabel={currentUser ? "Quiz" : "Login"}
-        contestSettings={contestSettings}
-        onAddQuestion={addQuestion}
-        onBackToQuiz={closeAdminPanel}
-        onDeleteQuestion={deleteQuestion}
-        onDeleteUser={deleteUser}
-        onLogout={logoutAdmin}
-        onToggleTheme={toggleTheme}
-        onToggleUserBlock={toggleUserBlock}
-        onUpdateContestSettings={updateContestSettings}
-        onUpdateQuestion={updateQuestion}
-        onUpdateUser={updateUser}
-        questions={questions}
-        theme={theme}
-        users={users}
-      />
-    );
-  }
+    if (mode === "landing") {
+      return (
+        <LandingPage
+          onLogin={() => goToPage("login")}
+          onSignup={() => goToPage("register")}
+        />
+      );
+    }
 
-  if (mode === "landing") {
-    return (
-      <LandingPage
-        onLogin={() => goToPage("login")}
-        onSignup={() => goToPage("register")}
-      />
-    );
-  }
+    if (currentUser) {
+      const currentUserRecord = getCurrentUserRecord();
+      const isCurrentUserBlocked = Boolean(currentUserRecord?.blocked);
+      const activeUser = currentUserRecord || currentUser;
+      if (mode === "compiler") {
+        return (
+          <CodeCompiler
+            onLogout={logout}
+            onToggleTheme={toggleTheme}
+            theme={theme}
+            user={activeUser}
+          />
+        );
+      }
 
-  if (currentUser) {
-    const currentUserRecord = getCurrentUserRecord();
-    const isCurrentUserBlocked = Boolean(currentUserRecord?.blocked);
-    const activeUser = currentUserRecord || currentUser;
-    const accountSections = ["profile", "editProfile", "certificate", "resume", "logout"];
+      const accountSections = [
+        "profile",
+        "editProfile",
+        "certificate",
+        "resume",
+        "logout",
+      ];
 
-    if (accountSections.includes(mode)) {
-      return isCurrentUserBlocked ? (
+      if (accountSections.includes(mode)) {
+        return isCurrentUserBlocked ? (
+          <Quiz
+            onLogout={logout}
+            onPracticeComplete={recordQuizComplete}
+            onToggleTheme={toggleTheme}
+            questions={questions}
+            routeCategory={routeCategory}
+            theme={theme}
+            user={activeUser}
+            users={users}
+            userBlocked={isCurrentUserBlocked}
+            contestSettings={contestSettings}
+            onChangePractice={() => goToPage("quiz")}
+            onSelectCategory={goToQuizCategory}
+          />
+        ) : (
+          <UserDetail
+            contestSettings={contestSettings}
+            onBackToQuiz={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+                return;
+              }
+
+              goToPage("quiz", { replace: true });
+            }}
+            onLogout={logout}
+            onSaveProfile={updateUser}
+            onToggleTheme={toggleTheme}
+            section={mode}
+            theme={theme}
+            user={activeUser}
+            users={users}
+          />
+        );
+      }
+
+      return (
         <Quiz
           onLogout={logout}
           onPracticeComplete={recordQuizComplete}
@@ -929,73 +1142,36 @@ function App() {
           onChangePractice={() => goToPage("quiz")}
           onSelectCategory={goToQuizCategory}
         />
-      ) : (
-        <UserDetail
-          contestSettings={contestSettings}
-          onBackToQuiz={() => {
+      );
+    }
+
+    if (mode === "reset") {
+      return (
+        <ResetPassword
+          form={form}
+          message={message}
+          onBack={() => {
             if (window.history.length > 1) {
               navigate(-1);
-              return;
+            } else {
+              goToPage("login", { replace: true });
             }
-
-            goToPage("quiz", { replace: true });
+            setResetStep("email");
+            setResetRequest(null);
+            setForm({ name: "", email: "", otp: "", password: "" });
+            setMessage("");
           }}
-          onLogout={logout}
-          onSaveProfile={updateUser}
-          onToggleTheme={toggleTheme}
-          section={mode}
-          theme={theme}
-          user={activeUser}
-          users={users}
+          onChange={updateForm}
+          onSendOtp={handleSendResetOtp}
+          onSubmit={handleResetPassword}
+          resetStep={resetStep}
         />
       );
     }
 
+    const isRegister = mode === "register";
+
     return (
-      <Quiz
-        onLogout={logout}
-        onPracticeComplete={recordQuizComplete}
-        onToggleTheme={toggleTheme}
-        questions={questions}
-        routeCategory={routeCategory}
-        theme={theme}
-        user={activeUser}
-        users={users}
-        userBlocked={isCurrentUserBlocked}
-        contestSettings={contestSettings}
-        onChangePractice={() => goToPage("quiz")}
-        onSelectCategory={goToQuizCategory}
-      />
-    );
-  }
-
-  if (mode === "reset") {
-    return (
-      <ResetPassword
-        form={form}
-        message={message}
-        onBack={() => {
-          if (window.history.length > 1) {
-            navigate(-1);
-          } else {
-            goToPage("login", { replace: true });
-          }
-          setResetStep("email");
-          setResetRequest(null);
-          setForm({ name: "", email: "", otp: "", password: "" });
-          setMessage("");
-        }}
-        onChange={updateForm}
-        onSendOtp={handleSendResetOtp}
-        onSubmit={handleResetPassword}
-        resetStep={resetStep}
-      />
-    );
-  }
-
-  const isRegister = mode === "register";
-
-  return (
       <AuthPage
         form={form}
         isRegister={isRegister}
@@ -1008,7 +1184,19 @@ function App() {
     );
   };
 
-  const currentPage = renderPage();
+  const currentPage = (
+    <Suspense
+      fallback={
+        <main className={`quiz-shell ${theme}-theme`}>
+          <section className="result-panel">
+            <h1>Loading...</h1>
+          </section>
+        </main>
+      }
+    >
+      {renderPage()}
+    </Suspense>
+  );
 
   return (
     <Routes>
@@ -1018,6 +1206,7 @@ function App() {
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />
       <Route path={pageRoutes.quiz} element={currentPage} />
+      <Route path={pageRoutes.compiler} element={currentPage} />
       <Route path="/quiz/:categorySlug" element={currentPage} />
       <Route path={pageRoutes.profile} element={currentPage} />
       <Route path={pageRoutes.editProfile} element={currentPage} />
@@ -1025,7 +1214,15 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
-      <Route path="*" element={<Navigate to={currentUser ? pageRoutes.quiz : pageRoutes.landing} replace />} />
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={currentUser ? pageRoutes.quiz : pageRoutes.landing}
+            replace
+          />
+        }
+      />
     </Routes>
   );
 }

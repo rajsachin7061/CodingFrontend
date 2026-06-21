@@ -107,7 +107,7 @@
 }
 
 .primary-action {
-  background: #facc15;
+  background: green;
   box-shadow: 0 18px 40px rgba(250, 204, 21, 0.25);
   color: #172554;
   font-size: 1rem;
@@ -420,6 +420,7 @@
 .quiz-preview,
 .question-panel,
 .result-panel,
+.compiler-panel,
 .admin-panel {
   background: rgba(15, 23, 42, 0.76);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -559,6 +560,11 @@
   justify-content: flex-start;
 }
 
+.compiler-shell {
+  justify-content: flex-start;
+  overflow: auto;
+}
+
 .quiz-shell.light-theme {
   background:
     radial-gradient(circle at top left, rgba(20, 184, 166, 0.18), transparent 34%),
@@ -582,6 +588,7 @@
 .quiz-shell.light-theme .quiz-preview,
 .quiz-shell.light-theme .question-panel,
 .quiz-shell.light-theme .result-panel,
+.quiz-shell.light-theme .compiler-panel,
 .quiz-shell.light-theme .admin-panel {
   background: rgba(255, 255, 255, 0.84);
   border-color: rgba(15, 23, 42, 0.12);
@@ -590,6 +597,7 @@
 
 .quiz-shell.light-theme .admin-section,
 .quiz-shell.light-theme .admin-form,
+.quiz-shell.light-theme .compiler-card,
 .quiz-shell.light-theme .account-card,
 .quiz-shell.light-theme .detail-list div,
 .quiz-shell.light-theme .preview-options span {
@@ -628,6 +636,7 @@
 .quiz-shell.light-theme .feature-row span,
 .quiz-shell.light-theme .preview-header span,
 .quiz-shell.light-theme .quiz-topbar span,
+.quiz-shell.light-theme .compiler-card-header span,
 .quiz-shell.light-theme .section-title span,
 .quiz-shell.light-theme .admin-row span,
 .quiz-shell.light-theme .detail-list span,
@@ -673,6 +682,136 @@
   position: relative;
   width: min(1120px, 100%);
   z-index: 1;
+}
+
+.compiler-panel {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  position: relative;
+  width: min(1180px, 100%);
+  z-index: 1;
+}
+
+.compiler-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.compiler-heading h1 {
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 0.95;
+  margin: 8px 0 0;
+}
+
+.compiler-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.compiler-select,
+.compiler-input {
+  color: #e2e8f0;
+  display: grid;
+  font-size: 0.86rem;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.compiler-select select,
+.compiler-input textarea {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #14213d;
+  font: inherit;
+  min-height: 44px;
+  padding: 9px 11px;
+}
+
+.compiler-input {
+  width: min(620px, 100%);
+}
+
+.compiler-input textarea {
+  resize: vertical;
+}
+
+.compiler-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+}
+
+.compiler-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.compiler-card-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.compiler-card-header span {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.compiler-editor {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.96rem;
+}
+
+.output-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.compiler-output {
+  background: #020617;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d1fae5;
+  flex: 1;
+  font-family: "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0;
+  min-height: 420px;
+  overflow: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+
+.compiler-preview {
+  background: #f8fafc;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 1;
+  min-height: 420px;
+  width: 100%;
+}
+
+.quiz-shell.light-theme .compiler-output {
+  background: #0f172a;
+  color: #d1fae5;
+}
+
+.quiz-shell.light-theme .compiler-select,
+.quiz-shell.light-theme .compiler-input {
+  color: #14213d;
 }
 
 .admin-heading,
@@ -917,7 +1056,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .quiz-shell.light-theme .category-heading {
@@ -1448,6 +1587,7 @@
   .compact-panel,
   .admin-grid,
   .certificate-grid,
+  .compiler-grid,
   .option-editor,
   .profile-detail-grid,
   .resume-builder,
@@ -1468,14 +1608,21 @@
   .auth-panel,
   .question-panel,
   .result-panel,
+  .compiler-panel,
   .admin-panel {
     padding: 22px;
   }
 
   .admin-heading,
+  .compiler-heading,
   .section-title {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .compiler-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .admin-stats {
