@@ -1,4 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import AboutUs from "./Components/LandingPage/Aboutus.jsx";
+import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
+import ContactUs from "./Components/LandingPage/Contctus.jsx";
+import Participates from "./Components/LandingPage/Participate.jsx";
+import QuizStarts from "./Components/Quizstart.jsx";
+
 import {
   Navigate,
   Route,
@@ -26,6 +32,7 @@ import {
   pageRoutes,
 } from "./pageRoutes";
 import "./App.css";
+import Thanks from "./Components/LandingPage/Thanku.jsx";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -1202,6 +1209,17 @@ function App() {
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
+
+      <Route path="/aboutus/codesnipers" element={<AboutUs />} />
+      <Route path="/privacy/codesnipers" element={<PrivacyPolicy />} />
+      <Route path="/contactus/codesnipers" element={<ContactUs />} />
+      <Route path="/participate/challenge/react/" element={<Participates/>}/>
+      <Route path="/submit" element={<Thanks/>}/>
+      <Route path="/participate/challenge/frontend/" element={<Participates/>}/>
+      <Route path="/participate/challenge/javascript/" element={<Participates/>}/>
+      <Route path="/quiz/start" element={<QuizStarts/>}/>
+
+
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />

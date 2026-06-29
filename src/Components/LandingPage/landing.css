@@ -237,7 +237,10 @@ body {
   padding: 2px;
   width: 50px;
   height: 50;
-  border-radius: 2px;
+  border-radius: 1rem;
+}
+logo-box img{
+  border-radius: 1rem;
 }
 
 .logo {
@@ -383,4 +386,10 @@ body {
     font-size: 13px;
     padding: 8px 16px;
   }
+}
+
+.coming-soon {
+  
+  padding: 5px;
+  text-align:center;
 }
