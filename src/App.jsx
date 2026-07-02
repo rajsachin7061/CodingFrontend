@@ -12,6 +12,7 @@ import AdminPanel from "./Components/AdminPanel";
 import AuthPage from "./Components/AuthPage";
 import LandingPage from "./Components/LandingPage/LandingPage";
 import Quiz from "./Components/Quiz";
+import Join from "./Components/LandingPage/join.jsx";
 import {
   defaultQuizCategory,
   getQuizCategoryPath,
@@ -1202,6 +1203,7 @@ function App() {
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
+      <Route path="/joinnow" element={<Join/>} />
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />
