@@ -227,7 +227,7 @@ const Page = ({ onLogin, onSignup }) => {
                 <p className="mt-4 text-slate-600">Medium</p>
                 <p className="mt-2 text-slate-700 font-semibold">Prize ₹500</p>
                 <button className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-800">
-                  Participate
+                  <a href="/participate/challenge/frontend/">Participate</a>
                 </button>
               </div>
 
@@ -238,7 +238,7 @@ const Page = ({ onLogin, onSignup }) => {
                 <p className="mt-4 text-slate-600">Hard</p>
                 <p className="mt-2 text-slate-700 font-semibold">Prize ₹1000</p>
                 <button className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-800">
-                  Participate
+                <a href="/participate/challenge/react/">Participate</a>  
                 </button>
               </div>
 
@@ -249,7 +249,7 @@ const Page = ({ onLogin, onSignup }) => {
                 <p className="mt-4 text-slate-600">Easy</p>
                 <p className="mt-2 text-slate-700 font-semibold">Prize ₹300</p>
                 <button className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-800">
-                  Participate
+                  <a href="/participate/challenge/javascript/">Participate</a>
                 </button>
               </div>
             </div>

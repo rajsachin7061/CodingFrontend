@@ -83,14 +83,16 @@ function Slider() {
                   </div>
                 </div>
               </div>
-
+              
+              <a href="/login" className="button">
               <div className="card-content">
                 <h2 className="name">{card.name}</h2>
                   
                   <h4>300 Problems</h4>
+                  </div>
+                  </a>
 
-                <button className="button">View More</button>
-              </div>
+                
             </div>
           </SwiperSlide>
         ))}

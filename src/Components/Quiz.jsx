@@ -266,8 +266,12 @@ function Quiz({
               <strong>Start</strong>
               <div className="practice-grid">
                 <button className="practice-card" type="button">
+                  <a href="/quiz/start/">
                   <span>Quiz</span>
+                  <br></br>
                   <small>Practice topic-wise questions.</small>
+                  </a>
+                  
                 </button>
                 <button className="practice-card" disabled={!isContestOpen || !questions.length} onClick={startContest} type="button">
                   <span>Contest</span>
