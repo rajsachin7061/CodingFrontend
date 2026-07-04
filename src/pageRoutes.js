@@ -16,7 +16,7 @@ export const pageRoutes = {
   problems: "/javaproblems",
 
   
-  compilers: "/code/compiler"
+  compilers: "/code/compiler",
 };
 
 const pathToPage = {
