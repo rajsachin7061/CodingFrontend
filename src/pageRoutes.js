@@ -16,10 +16,7 @@ export const pageRoutes = {
   admin: "/admin",
   problems: "/javaproblems",
 
-  
   compilers: "/code/compiler",
-  
-
   javaproblem: "/javaproblem",
   cppproblem: "/quiz/cppproblem",
   htmlproblem: "/htmlproblem",
@@ -45,7 +42,7 @@ const pathToPage = {
   [pageRoutes.admin]: "admin",
 
 
-  [pageRoutes.compilers]: "compilers"
+  [pageRoutes.compilers]: "compilers",
   [pageRoutes.javaproblem]: "javaproblem",
   [pageRoutes.cppproblem]: "cppproblem",
   [pageRoutes.htmlproblem]: "htmlproblem",
