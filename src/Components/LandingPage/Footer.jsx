@@ -8,7 +8,7 @@ const Footer = () => {
         <h2 className="font-bold text-lg">Coding Snipers</h2>
 
         <div className="flex flex-wrap justify-center gap-3 mt-2">
-          <a href="/Aboutus/codesnipers/" className="hover:text-blue-400">
+          <a href="/aboutus/codesnipers/" className="hover:text-blue-400">
            • About Us
           </a>
 

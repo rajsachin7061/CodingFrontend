@@ -13,6 +13,10 @@ export const pageRoutes = {
   resume: "/profile/resume",
   logout: "/logout",
   admin: "/admin",
+  problems: "/javaproblems",
+
+  
+  compilers: "/code/compiler"
 };
 
 const pathToPage = {
@@ -29,6 +33,9 @@ const pathToPage = {
   [pageRoutes.resume]: "resume",
   [pageRoutes.logout]: "logout",
   [pageRoutes.admin]: "admin",
+
+
+  [pageRoutes.compilers]: "compilers"
 };
 
 export const getQuizCategoryFromPath = (pathname) => {
@@ -47,7 +54,7 @@ export const getRequestedPageFromPath = (pathname) => {
 
 export const getAllowedPage = (pathname, currentUser) => {
   const page = getRequestedPageFromPath(pathname);
-  const protectedPages = ["quiz", "compiler", "profile", "editProfile", "certificate", "resume", "logout"];
+  const protectedPages = ["quiz",  "profile", "editProfile", "certificate", "resume", "logout"];
 
   if (protectedPages.includes(page) && !currentUser) {
     return "login";
