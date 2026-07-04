@@ -14,7 +14,7 @@ const Problems = () => {
   return (
     <div className="problems-page">
       <h1>{category} Problems</h1>
-      <p>Here you can practice problems for the selected languages. </p>{" "}
+      <p>Here you can practice problems for the selected languageses. </p>{" "}
       <a href="/question-details">
         {" "}
         1.Which feature allows same method name with different parameters?e{" "}

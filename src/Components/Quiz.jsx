@@ -417,7 +417,7 @@ function Quiz({
                     <a href="/quiz/cppproblem">
                       <div class="card">
                         <h2>C++</h2>
-                        <p>No questions yet</p>
+                        <p>No questions yets</p>
                         open
                       </div>
                     </a>
