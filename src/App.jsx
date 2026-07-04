@@ -4,6 +4,7 @@ import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
 import ContactUs from "./Components/LandingPage/Contctus.jsx";
 import Participates from "./Components/LandingPage/Participate.jsx";
 import QuizStarts from "./Components/Quizstart.jsx";
+import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
 
 
@@ -1218,6 +1219,13 @@ function App() {
       <Route path="/aboutus/codesnipers" element={<AboutUs />} />
       <Route path="/privacy/codesnipers" element={<PrivacyPolicy />} />
       <Route path="/contactus/codesnipers" element={<ContactUs />} />
+      <Route path="/participate/challenge/react/" element={<Participates/>}/>
+      <Route path="/submit" element={<Thanks/>}/>
+      <Route path="/participate/challenge/frontend/" element={<Participates/>}/>
+      <Route path="/participate/challenge/javascript/" element={<Participates/>}/>
+      <Route path="/quiz/start" element={<QuizStarts/>}/>
+      
+      
       <Route path="/participate/challenge/react/" element={<Participates />} />
       <Route path="/submit" element={<Thanks />} />
       <Route

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import quizCategories from "./QuizCategories";
 import UserMenu from "./UserMenu";
+import Footer from "./LandingPage/Footer";
+import Slider from "./LandingPage/Slider";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
 import QuestionBox from "./questionBox";
@@ -292,11 +294,8 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
-            {!userBlocked && (
-              <Link className="secondary-action" to={pageRoutes.profile}>
-                My Profile
-              </Link>
-            )}
+            {/* {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>} */}
+
             <button
               className="secondary-action"
               onClick={onToggleTheme}
@@ -400,60 +399,9 @@ function Quiz({
               </div>
             </div>
 
-            <div class="witth-full flex flex-wrap ">
-              <div class="practice-gride">
-                <div class="card-container">
-                  <div>
-                    <a href="/javaproblem">
-                      <div class="card active">
-                        <h2>Java</h2>
-                        <p>1 question</p>
-                        <button class="button">open</button>
-                      </div>
-                    </a>
-                  </div>
 
-                  <div>
-                    <a href="/quiz/cppproblem">
-                      <div class="card">
-                        <h2>C++</h2>
-                        <p>No questions yets</p>
-                        open
-                      </div>
-                    </a>
-                  </div>
-
-                  <div>
-                    <a href="/htmlproblem">
-                      <div class="card">
-                        <h2>HTML</h2>
-                        <p>1 question</p>
-                      </div>
-                    </a>
-                  </div>
-
-                  <div>
-                    <a href="/cssproblem">
-                      <div class="card">
-                        <h2>CSS</h2>
-                        <p>1 question</p>
-                      </div>
-                    </a>
-                  </div>
-
-                  <div>
-                    <a href="/javascriptproblem">
-                      <div class="card">
-                        <h2>JavaScript</h2>
-                        <p>2 questions</p>
-                      </div>
-                    </a>
-                  </div>
-                  <div>
-                    <QuestionBox />
-                  </div>
-                </div>
-              </div>
+            <div>
+              <Footer />
             </div>
           </div>
         </section>
