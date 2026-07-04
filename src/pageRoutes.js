@@ -44,7 +44,7 @@ const pathToPage = {
   [pageRoutes.admin]: "admin",
 
 
-  [pageRoutes.compilers]: "compilers"
+  [pageRoutes.compilers]: "compilers",
   [pageRoutes.javaproblem]: "javaproblem",
   [pageRoutes.cppproblem]: "cppproblem",
   [pageRoutes.htmlproblem]: "htmlproblem",
