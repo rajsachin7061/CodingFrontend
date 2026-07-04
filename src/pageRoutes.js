@@ -17,7 +17,7 @@ export const pageRoutes = {
   problems: "/javaproblems",
 
   
-  compilers: "/code/compiler"
+  compilers: "/code/compiler",
 
   javaproblem: "/javaproblem",
   cppproblem: "/quiz/cppproblem",
