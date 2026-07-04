@@ -1213,7 +1213,8 @@ function App() {
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
-      <Route path="/joinnow" element={<Join />} />
+      <Route path="/joinnow" element={<Join/>} />
+
       <Route path="/aboutus/codesnipers" element={<AboutUs />} />
       <Route path="/privacy/codesnipers" element={<PrivacyPolicy />} />
       <Route path="/contactus/codesnipers" element={<ContactUs />} />
