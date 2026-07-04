@@ -398,7 +398,61 @@ function Quiz({
                 })}
               </div>
             </div>
+            <div className="witth-full flex flex-wrap">
+              <div className="practice-gride">
+                <div className="card-container">
+                  <div>
+                    <a href="/javaproblem">
+                      <div className="card active">
+                        <h2>Java</h2>
+                        <p>1 question</p>
+                        <button className="button">open</button>
+                      </div>
+                    </a>
+                  </div>
 
+                  <div>
+                    <a href="/quiz/cppproblem">
+                      <div className="card">
+                        <h2>C++</h2>
+                        <p>No questions yets</p>
+                        open
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/htmlproblem">
+                      <div className="card">
+                        <h2>HTML</h2>
+                        <p>1 question</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/cssproblem">
+                      <div className="card">
+                        <h2>CSS</h2>
+                        <p>1 question</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/javascriptproblem">
+                      <div className="card">
+                        <h2>JavaScript</h2>
+                        <p>2 questions</p>
+                      </div>
+                    </a>
+                  </div>
+                  <div>
+                    <QuestionBox />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div>
               <Footer />
