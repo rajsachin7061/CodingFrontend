@@ -1659,3 +1659,25 @@
   padding: 12px 20px;
   border-radius: 8px;
 }
+
+
+
+
+
+
+.card-container {
+    display: flex;
+    flex-wrap: wrap;      /* Next line me shift ho jayenge */
+    gap: 20px;
+    padding: 20px;
+}
+
+.card {
+    width: 180px;
+    height: 120px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}

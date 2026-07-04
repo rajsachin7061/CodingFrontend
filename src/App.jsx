@@ -5,6 +5,7 @@ import ContactUs from "./Components/LandingPage/Contctus.jsx";
 import Participates from "./Components/LandingPage/Participate.jsx";
 import QuizStarts from "./Components/Quizstart.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
+import Problems from "./Components/Problems.jsx";
 
 
 import {
@@ -20,6 +21,7 @@ import AdminPanel from "./Components/AdminPanel";
 import AuthPage from "./Components/AuthPage";
 import LandingPage from "./Components/LandingPage/LandingPage";
 import Quiz from "./Components/Quiz";
+import Join from "./Components/LandingPage/join.jsx";
 import {
   defaultQuizCategory,
   getQuizCategoryPath,
@@ -35,6 +37,7 @@ import {
 } from "./pageRoutes";
 import "./App.css";
 import Thanks from "./Components/LandingPage/Thanku.jsx";
+import Questiondetail from "./Components/Questiondetail.jsx";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -1211,6 +1214,7 @@ function App() {
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
+      <Route path="/joinnow" element={<Join/>} />
 
       <Route path="/aboutus/codesnipers" element={<AboutUs />} />
       <Route path="/privacy/codesnipers" element={<PrivacyPolicy />} />
@@ -1222,6 +1226,23 @@ function App() {
       <Route path="/quiz/start" element={<QuizStarts/>}/>
       
       
+      <Route path="/participate/challenge/react/" element={<Participates />} />
+      <Route path="/submit" element={<Thanks />} />
+      <Route
+        path="/participate/challenge/frontend/"
+        element={<Participates />}
+      />
+      <Route
+        path="/participate/challenge/javascript/"
+        element={<Participates />}
+      />
+      <Route path="/quiz/start" element={<QuizStarts />} />
+      <Route path="/javaproblem" element={<Problems />} />
+      <Route path="/quiz/cppproblem" element={<Problems />} />
+      <Route path="/htmlproblem" element={<Problems />} />
+      <Route path="/cssproblem" element={<Problems />} />
+      <Route path="/javascriptproblem" element={<Problems/>}/>
+      <Route path="/question-details" element={<Questiondetail/>}/>
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />

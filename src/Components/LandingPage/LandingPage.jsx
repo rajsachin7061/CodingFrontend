@@ -274,7 +274,7 @@ const Page = ({ onLogin, onSignup }) => {
                 Join Now Free
               </h2>
               <button className="mt-8 inline-flex rounded-full bg-indigo-700 px-8 py-3 text-sm font-semibold text-white transition hover:bg-indigo-800">
-                Join Now Free
+                <a href="/joinnow">join now</a>
               </button>
             </div>
           </div>

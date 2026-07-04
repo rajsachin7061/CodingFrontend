@@ -1,3 +1,4 @@
+
 import { getQuizCategoryBySlug } from "./Components/QuizCategories";
 
 export const pageRoutes = {
@@ -17,6 +18,14 @@ export const pageRoutes = {
 
   
   compilers: "/code/compiler"
+
+  javaproblem: "/javaproblem",
+  cppproblem: "/quiz/cppproblem",
+  htmlproblem: "/htmlproblem",
+  cssproblem: "/cssproblem",
+  javascriptproblem: "/javascriptproblem",
+  Questiondetail: "/question-details",
+
 };
 
 const pathToPage = {
@@ -36,6 +45,12 @@ const pathToPage = {
 
 
   [pageRoutes.compilers]: "compilers"
+  [pageRoutes.javaproblem]: "javaproblem",
+  [pageRoutes.cppproblem]: "cppproblem",
+  [pageRoutes.htmlproblem]: "htmlproblem",
+  [pageRoutes.cssproblem]: "cssproblem",
+  [pageRoutes.javascriptproblem]: "javascriptproblem",
+  [pageRoutes.Questiondetail]: "Questiondetail",
 };
 
 export const getQuizCategoryFromPath = (pathname) => {
