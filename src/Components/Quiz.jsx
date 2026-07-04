@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import quizCategories from "./QuizCategories";
 import UserMenu from "./UserMenu";
+import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
+import QuestionBox from "./questionBox";
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -46,7 +48,9 @@ function Quiz({
   const [isFinished, setIsFinished] = useState(false);
   const [localCategory, setLocalCategory] = useState("");
   const [contestQuestions, setContestQuestions] = useState([]);
-  const [contestRemainingSeconds, setContestRemainingSeconds] = useState(contestSettings?.contestDurationSeconds || 600);
+  const [contestRemainingSeconds, setContestRemainingSeconds] = useState(
+    contestSettings?.contestDurationSeconds || 600,
+  );
   const [contestElapsedSeconds, setContestElapsedSeconds] = useState(0);
   const [showContestLeaderboard, setShowContestLeaderboard] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
@@ -58,24 +62,45 @@ function Quiz({
   const contestQuestionCount = contestSettings?.contestQuestionCount || 10;
   const contestName = (contestSettings?.contestName || "Weekly Contest").trim();
   const selectedContestQuestionIds = contestSettings?.selectedQuestionIds || [];
-  const showLeaderboardToUsers = Boolean(contestSettings?.showLeaderboardToUsers);
-  const scheduleStart = contestSettings?.startAt ? new Date(contestSettings.startAt).getTime() : null;
-  const scheduleEnd = contestSettings?.endAt ? new Date(contestSettings.endAt).getTime() : null;
-  const isBeforeContest = Boolean(contestSettings?.isScheduled && scheduleStart && nowTs < scheduleStart);
-  const isAfterContest = Boolean(contestSettings?.isScheduled && scheduleEnd && nowTs > scheduleEnd);
-  const isContestOpen = !contestSettings?.isScheduled || (!isBeforeContest && !isAfterContest);
+  const showLeaderboardToUsers = Boolean(
+    contestSettings?.showLeaderboardToUsers,
+  );
+  const scheduleStart = contestSettings?.startAt
+    ? new Date(contestSettings.startAt).getTime()
+    : null;
+  const scheduleEnd = contestSettings?.endAt
+    ? new Date(contestSettings.endAt).getTime()
+    : null;
+  const isBeforeContest = Boolean(
+    contestSettings?.isScheduled && scheduleStart && nowTs < scheduleStart,
+  );
+  const isAfterContest = Boolean(
+    contestSettings?.isScheduled && scheduleEnd && nowTs > scheduleEnd,
+  );
+  const isContestOpen =
+    !contestSettings?.isScheduled || (!isBeforeContest && !isAfterContest);
   const isLeaderboardPublished = showLeaderboardToUsers && isAfterContest;
-  const timeToStartSeconds = scheduleStart ? Math.max(0, Math.floor((scheduleStart - nowTs) / 1000)) : 0;
-  const timeToScheduleEndSeconds = scheduleEnd ? Math.max(0, Math.floor((scheduleEnd - nowTs) / 1000)) : Number.POSITIVE_INFINITY;
+  const timeToStartSeconds = scheduleStart
+    ? Math.max(0, Math.floor((scheduleStart - nowTs) / 1000))
+    : 0;
+  const timeToScheduleEndSeconds = scheduleEnd
+    ? Math.max(0, Math.floor((scheduleEnd - nowTs) / 1000))
+    : Number.POSITIVE_INFINITY;
 
   const practiceQuestions = isContest
     ? contestQuestions
     : selectedCategory
-      ? questions.filter((question) => question.category === selectedCategory && question.section !== "contest")
+      ? questions.filter(
+          (question) =>
+            question.category === selectedCategory &&
+            question.section !== "contest",
+        )
       : [];
   const currentQuestion = practiceQuestions[index];
   const questionNumber = index + 1;
-  const progress = practiceQuestions.length ? (questionNumber / practiceQuestions.length) * 100 : 0;
+  const progress = practiceQuestions.length
+    ? (questionNumber / practiceQuestions.length) * 100
+    : 0;
   const effectiveContestRemaining = isContest
     ? Math.max(0, Math.min(contestRemainingSeconds, timeToScheduleEndSeconds))
     : 0;
@@ -89,7 +114,9 @@ function Quiz({
             item.stats?.contest ||
             {};
           const totalQuestions = contest.totalQuestions || 0;
-          const avg = totalQuestions ? (contest.totalTimeSeconds || 0) / totalQuestions : Number.POSITIVE_INFINITY;
+          const avg = totalQuestions
+            ? (contest.totalTimeSeconds || 0) / totalQuestions
+            : Number.POSITIVE_INFINITY;
           return {
             name: item.name,
             totalCorrect: contest.totalCorrect || 0,
@@ -98,13 +125,20 @@ function Quiz({
           };
         })
         .filter((item) => item.attempts > 0)
-        .sort((a, b) => (b.totalCorrect - a.totalCorrect) || (a.avgTimePerQuestion - b.avgTimePerQuestion))
+        .sort(
+          (a, b) =>
+            b.totalCorrect - a.totalCorrect ||
+            a.avgTimePerQuestion - b.avgTimePerQuestion,
+        )
         .slice(0, 5),
     [contestName, users],
   );
 
   const getQuestionCount = (category) =>
-    questions.filter((question) => question.category === category && question.section !== "contest").length;
+    questions.filter(
+      (question) =>
+        question.category === category && question.section !== "contest",
+    ).length;
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -133,12 +167,19 @@ function Quiz({
     }
 
     const selectedContestBank = selectedContestQuestionIds
-      .map((questionId) => questions.find((question) => question.id === questionId))
+      .map((questionId) =>
+        questions.find((question) => question.id === questionId),
+      )
       .filter((question) => question && question.section !== "quiz");
 
-    const fallbackContestBank = questions.filter((question) => question.section !== "quiz");
+    const fallbackContestBank = questions.filter(
+      (question) => question.section !== "quiz",
+    );
     const contestBank = selectedContestBank.length
-      ? selectedContestBank.slice(0, Math.min(contestQuestionCount, selectedContestBank.length))
+      ? selectedContestBank.slice(
+          0,
+          Math.min(contestQuestionCount, selectedContestBank.length),
+        )
       : [...fallbackContestBank]
           .sort(() => Math.random() - 0.5)
           .slice(0, Math.min(contestQuestionCount, fallbackContestBank.length));
@@ -235,7 +276,15 @@ function Quiz({
     }, 1000);
 
     return () => window.clearTimeout(timerId);
-  }, [contestElapsedSeconds, currentQuestion, effectiveContestRemaining, isContest, isFinished, score, started]);
+  }, [
+    contestElapsedSeconds,
+    currentQuestion,
+    effectiveContestRemaining,
+    isContest,
+    isFinished,
+    score,
+    started,
+  ]);
 
   if (!started) {
     return (
@@ -243,11 +292,29 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
-            {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>}
-            <button className="secondary-action" onClick={onToggleTheme} type="button">
+            {!userBlocked && (
+              <Link className="secondary-action" to={pageRoutes.profile}>
+                My Profile
+              </Link>
+            )}
+            <button
+              className="secondary-action"
+              onClick={onToggleTheme}
+              type="button"
+            >
               {theme === "dark" ? "Light Mode" : "Dark Mode"}
             </button>
-            {!userBlocked ? <UserMenu user={user} onLogout={onLogout} /> : <button className="secondary-action" onClick={onLogout} type="button">Logout</button>}
+            {!userBlocked ? (
+              <UserMenu user={user} onLogout={onLogout} />
+            ) : (
+              <button
+                className="secondary-action"
+                onClick={onLogout}
+                type="button"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </header>
 
@@ -255,11 +322,17 @@ function Quiz({
           <div className="hero-copy">
             <p className="eyebrow">Quick brain workout</p>
             <h1>Code Snipers</h1>
-            <p className="hero-text"><strong>{contestName}</strong></p>
-            <p className="hero-text">Contest uses one full timer for the entire exam. You can see remaining exam time live.</p>
+            <p className="hero-text">
+              <strong>{contestName}</strong>
+            </p>
+            <p className="hero-text">
+              Contest uses one full timer for the entire exam. You can see
+              remaining exam time live.
+            </p>
             {isBeforeContest && (
               <p className="hero-text">
-                Contest starts in <strong>{formatLongCountdown(timeToStartSeconds)}</strong>
+                Contest starts in{" "}
+                <strong>{formatLongCountdown(timeToStartSeconds)}</strong>
               </p>
             )}
             <div className="practice-panel">
@@ -267,13 +340,17 @@ function Quiz({
               <div className="practice-grid">
                 <button className="practice-card" type="button">
                   <a href="/quiz/start/">
-                  <span>Quiz</span>
-                  <br></br>
-                  <small>Practice topic-wise questions.</small>
+                    <span>Quiz</span>
+                    <br></br>
+                    <small>Practice topic-wise questions.</small>
                   </a>
-                  
                 </button>
-                <button className="practice-card" disabled={!isContestOpen || !questions.length} onClick={startContest} type="button">
+                <button
+                  className="practice-card"
+                  disabled={!isContestOpen || !questions.length}
+                  onClick={startContest}
+                  type="button"
+                >
                   <span>Contest</span>
                   <small>
                     {isBeforeContest
@@ -287,10 +364,14 @@ function Quiz({
               {isLeaderboardPublished && (
                 <button
                   className="secondary-action contest-leaderboard-toggle"
-                  onClick={() => setShowContestLeaderboard((current) => !current)}
+                  onClick={() =>
+                    setShowContestLeaderboard((current) => !current)
+                  }
                   type="button"
                 >
-                  {showContestLeaderboard ? "Hide Contest Leaderboard" : "View Contest Leaderboard"}
+                  {showContestLeaderboard
+                    ? "Hide Contest Leaderboard"
+                    : "View Contest Leaderboard"}
                 </button>
               )}
             </div>
@@ -300,30 +381,103 @@ function Quiz({
                 {quizCategories.map((category) => {
                   const count = getQuestionCount(category);
                   return (
-                    <button className="practice-card" disabled={!count} key={category} onClick={() => startPractice(category)} type="button">
+                    <button
+                      className="practice-card"
+                      disabled={!count}
+                      key={category}
+                      onClick={() => startPractice(category)}
+                      type="button"
+                    >
                       <span>{category}</span>
-                      <small>{count ? `${count} question${count === 1 ? "" : "s"}` : "No questions yet"}</small>
+                      <small>
+                        {count
+                          ? `${count} question${count === 1 ? "" : "s"}`
+                          : "No questions yet"}
+                      </small>
                     </button>
                   );
                 })}
               </div>
             </div>
+
+            <div class="witth-full flex flex-wrap ">
+              <div class="practice-gride">
+                <div class="card-container">
+                  <div>
+                    <a href="/javaproblem">
+                      <div class="card active">
+                        <h2>Java</h2>
+                        <p>1 question</p>
+                        <button class="button">open</button>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/quiz/cppproblem">
+                      <div class="card">
+                        <h2>C++</h2>
+                        <p>No questions yet</p>
+                        open
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/htmlproblem">
+                      <div class="card">
+                        <h2>HTML</h2>
+                        <p>1 question</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/cssproblem">
+                      <div class="card">
+                        <h2>CSS</h2>
+                        <p>1 question</p>
+                      </div>
+                    </a>
+                  </div>
+
+                  <div>
+                    <a href="/javascriptproblem">
+                      <div class="card">
+                        <h2>JavaScript</h2>
+                        <p>2 questions</p>
+                      </div>
+                    </a>
+                  </div>
+                  <div>
+                    <QuestionBox />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {showContestLeaderboard && isLeaderboardPublished && leaderboard.length > 0 && (
-          <section className="feature-row" aria-label="Contest leaderboard">
-            <div>
-              <strong>{contestName}</strong>
-            </div>
-            {leaderboard.map((row, idx) => (
-              <div key={`${row.name}-${idx}`}>
-                <strong>#{idx + 1} {row.name}</strong>
-                <span>{row.totalCorrect} correct | {row.avgTimePerQuestion.toFixed(2)}s avg</span>
+        {showContestLeaderboard &&
+          isLeaderboardPublished &&
+          leaderboard.length > 0 && (
+            <section className="feature-row" aria-label="Contest leaderboard">
+              <div>
+                <strong>{contestName}</strong>
               </div>
-            ))}
-          </section>
-        )}
+              {leaderboard.map((row, idx) => (
+                <div key={`${row.name}-${idx}`}>
+                  <strong>
+                    #{idx + 1} {row.name}
+                  </strong>
+                  <span>
+                    {row.totalCorrect} correct |{" "}
+                    {row.avgTimePerQuestion.toFixed(2)}s avg
+                  </span>
+                </div>
+              ))}
+            </section>
+          )}
       </main>
     );
   }
@@ -335,19 +489,53 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
-            <button className="secondary-action" onClick={onToggleTheme} type="button">{theme === "dark" ? "Light Mode" : "Dark Mode"}</button>
-            {!userBlocked ? <UserMenu user={user} onLogout={onLogout} /> : <button className="secondary-action" onClick={onLogout} type="button">Logout</button>}
+            <button
+              className="secondary-action"
+              onClick={onToggleTheme}
+              type="button"
+            >
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </button>
+            {!userBlocked ? (
+              <UserMenu user={user} onLogout={onLogout} />
+            ) : (
+              <button
+                className="secondary-action"
+                onClick={onLogout}
+                type="button"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </header>
         <section className="result-panel">
-          <p className="eyebrow">{isContest ? "Contest complete" : "Quiz complete"}</p>
+          <p className="eyebrow">
+            {isContest ? "Contest complete" : "Quiz complete"}
+          </p>
           <h1>{percentage}% Score</h1>
-          <p className="hero-text">You answered {score} out of {practiceQuestions.length} correctly.</p>
-          {isContest && <p className="hero-text">Time used: {formatClock(contestElapsedSeconds)}</p>}
-          <div className="score-ring">{score}/{practiceQuestions.length}</div>
+          <p className="hero-text">
+            You answered {score} out of {practiceQuestions.length} correctly.
+          </p>
+          {isContest && (
+            <p className="hero-text">
+              Time used: {formatClock(contestElapsedSeconds)}
+            </p>
+          )}
+          <div className="score-ring">
+            {score}/{practiceQuestions.length}
+          </div>
           <div className="result-actions">
-            <button className="primary-action" onClick={restartQuiz}>Play Again</button>
-            <button className="secondary-action" onClick={changePractice} type="button">Change Practice</button>
+            <button className="primary-action" onClick={restartQuiz}>
+              Play Again
+            </button>
+            <button
+              className="secondary-action"
+              onClick={changePractice}
+              type="button"
+            >
+              Change Practice
+            </button>
           </div>
         </section>
       </main>
@@ -359,7 +547,13 @@ function Quiz({
       <main className={`quiz-shell ${theme}-theme`}>
         <section className="result-panel">
           <h1>No Questions</h1>
-          <button className="primary-action" onClick={changePractice} type="button">Choose Practice</button>
+          <button
+            className="primary-action"
+            onClick={changePractice}
+            type="button"
+          >
+            Choose Practice
+          </button>
         </section>
       </main>
     );
@@ -370,8 +564,24 @@ function Quiz({
       <header className="user-bar" aria-label="Signed in user">
         <span>Hi, {user.name}</span>
         <div className="user-actions">
-          <button className="secondary-action" onClick={onToggleTheme} type="button">{theme === "dark" ? "Light Mode" : "Dark Mode"}</button>
-          {!userBlocked ? <UserMenu user={user} onLogout={onLogout} /> : <button className="secondary-action" onClick={onLogout} type="button">Logout</button>}
+          <button
+            className="secondary-action"
+            onClick={onToggleTheme}
+            type="button"
+          >
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </button>
+          {!userBlocked ? (
+            <UserMenu user={user} onLogout={onLogout} />
+          ) : (
+            <button
+              className="secondary-action"
+              onClick={onLogout}
+              type="button"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </header>
       <section className="question-panel">
@@ -381,24 +591,45 @@ function Quiz({
             <span>{practiceQuestions.length - index - 1} left</span>
           </div>
           <strong>{isContest ? "Contest" : selectedCategory}</strong>
-          {isContest && <span className="contest-timer">{formatClock(effectiveContestRemaining)}</span>}
+          {isContest && (
+            <span className="contest-timer">
+              {formatClock(effectiveContestRemaining)}
+            </span>
+          )}
         </div>
-        <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
+        <div className="progress-track">
+          <span style={{ width: `${progress}%` }} />
+        </div>
         <h2>{currentQuestion.question}</h2>
         <div className="answer-grid">
           {currentQuestion.options.map((option) => {
             const isSelected = selectedAnswer === option;
             const isAnswer = option === currentQuestion.answer;
-            const stateClass = selectedAnswer && isAnswer ? "correct" : isSelected ? "wrong" : "";
+            const stateClass =
+              selectedAnswer && isAnswer
+                ? "correct"
+                : isSelected
+                  ? "wrong"
+                  : "";
             return (
-              <button className={`answer-option ${stateClass}`} disabled={Boolean(selectedAnswer)} key={option} onClick={() => checkAnswer(option)}>
+              <button
+                className={`answer-option ${stateClass}`}
+                disabled={Boolean(selectedAnswer)}
+                key={option}
+                onClick={() => checkAnswer(option)}
+              >
                 {option}
               </button>
             );
           })}
         </div>
         <div className="result-actions">
-          <button className="primary-action" disabled={!selectedAnswer} onClick={goToNextQuestion} type="button">
+          <button
+            className="primary-action"
+            disabled={!selectedAnswer}
+            onClick={goToNextQuestion}
+            type="button"
+          >
             {index + 1 < practiceQuestions.length ? "Next" : "Finish"}
           </button>
         </div>
