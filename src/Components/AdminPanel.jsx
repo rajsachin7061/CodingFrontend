@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
+import ProblemManagement from "./ProblemManagement";
 import quizCategories, { defaultQuizCategory } from "./QuizCategories";
 
 const emptyQuestion = {
@@ -375,7 +376,7 @@ function AdminPanel({
         </div>
 
         <div className="admin-tabs" aria-label="Admin views">
-          {["users", "questions", "add", "contest", "leaderboard"].map((view) => (
+          {["users", "questions", "add", "problems", "contest", "leaderboard"].map((view) => (
             <button
               key={view}
               className={activeView === view ? "tab-action active" : "tab-action"}
@@ -385,6 +386,7 @@ function AdminPanel({
               {view === "users" && "User Detail"}
               {view === "questions" && "Question Bank"}
               {view === "add" && "Add Question"}
+              {view === "problems" && "Problem Management"}
               {view === "contest" && "Contest Settings"}
               {view === "leaderboard" && "LeaderBoard"}
             </button>
@@ -570,6 +572,8 @@ function AdminPanel({
             <button className="primary-action" type="submit">Add Question</button>
           </form>
         )}
+
+        {activeView === "problems" && <ProblemManagement />}
 
         {activeView === "contest" && (
           <form className="admin-form" onSubmit={saveContestSettings}>
