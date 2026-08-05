@@ -6,6 +6,14 @@ import UserMenu from "./UserMenu";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
 import QuestionBox from "./questionBox";
+import Footer from "./LandingPage/Footer";
+
+import javaImg from "./LandingPage/imaiges/java.png";
+import cppImg from "./LandingPage/imaiges/c++.png";
+import javascriptImg from "./LandingPage/imaiges/javascript.png";
+import cssImg from "./LandingPage/imaiges/css.png";
+import pythonImg from "./LandingPage/imaiges/python.png";
+import htmlImg from "./LandingPage/imaiges/html.png";
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -400,61 +408,80 @@ function Quiz({
               </div>
             </div>
 
-            <div class="witth-full flex flex-wrap ">
-              <div class="practice-gride">
-                <div class="card-container">
+            <div className=" ">
+              <div className="practice-gride">
+                <div className="card-container">
                   <div>
                     <a href="/javaproblem">
-                      <div class="card active">
-                        <h2>Java</h2>
-                        <p>1 question</p>
-                        <button class="button">open</button>
+                      <div className="card active">
+                        <img src={javaImg} alt="Java Logo" className="logo" />
+                        <h2 className="text">
+                          Java
+                          <br />1 question
+                        </h2>
+                        <button className="button">open</button>
                       </div>
                     </a>
                   </div>
 
                   <div>
                     <a href="/quiz/cppproblem">
-                      <div class="card">
-                        <h2>C++</h2>
-                        <p>No questions yets</p>
-                        open
+                      <div className="card">
+                        <img src={cppImg} alt="C++" className="logo" />
+                        <h2 className="text">
+                          C++
+                          <br />
+                          no question yet open
+                        </h2>
+                        <button className="button">open</button>
                       </div>
                     </a>
                   </div>
 
                   <div>
                     <a href="/htmlproblem">
-                      <div class="card">
-                        <h2>HTML</h2>
-                        <p>1 question</p>
+                      <div className="card">
+                        <img src={htmlImg} alt="HTML" className="logo" />
+                        <h2 className="text">
+                          HTML
+                          <br />1 question
+                        </h2>
+                        <button className="button">open</button>
                       </div>
                     </a>
                   </div>
 
                   <div>
                     <a href="/cssproblem">
-                      <div class="card">
-                        <h2>CSS</h2>
-                        <p>1 question</p>
+                      <div className="card">
+                        <img src={cssImg} alt="CSS" className="logo" />
+                        <h2 className="text">
+                          CSS
+                          <br />1 question
+                        </h2>
+                        <button className="button">open</button>
                       </div>
                     </a>
                   </div>
 
                   <div>
-                    <a href="/javascriptproblem">
-                      <div class="card">
-                        <h2>JavaScript</h2>
-                        <p>2 questions</p>
+                    <a href="/pythonproblem">
+                      <div className="card">
+                        <img src={pythonImg} alt="Python" className="logo" />
+                        <h2 className="text">
+                          Python
+                          <br />2 questions
+                        </h2>
+                        <button className="button">open</button>
                       </div>
                     </a>
-                  </div>
-                  <div>
-                    <QuestionBox />
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+          <div>
+            <Footer />
           </div>
         </section>
 
