@@ -7,7 +7,7 @@ import Footer from "./LandingPage/Footer";
 import Slider from "./LandingPage/Slider";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
-import QuestionBox from "./questionBox";
+
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -294,6 +294,18 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
+
+              
+           
+          <div className ="upperheader">
+            <div>Course</div>
+            <div>Practice</div>
+            <div><a href="/javaproblem">Problem</a></div>
+            <div>Game</div>
+            <div><a href="/compiler">Compiler</a></div>
+
+            </div> 
+            
             {/* {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>} */}
 
             <button
@@ -306,13 +318,13 @@ function Quiz({
             {!userBlocked ? (
               <UserMenu user={user} onLogout={onLogout} />
             ) : (
-              <button
+              <buCompilertton
                 className="secondary-action"
                 onClick={onLogout}
                 type="button"
               >
                 Logout
-              </button>
+              </buCompilertton>
             )}
           </div>
         </header>
@@ -447,9 +459,7 @@ function Quiz({
                       </div>
                     </a>
                   </div>
-                  <div>
-                    <QuestionBox />
-                  </div>
+                  
                 </div>
               </div>
             </div>

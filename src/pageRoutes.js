@@ -22,7 +22,7 @@ export const pageRoutes = {
   htmlproblem: "/htmlproblem",
   cssproblem: "/cssproblem",
   javascriptproblem: "/javascriptproblem",
-  Questiondetail: "/question-details",
+  Questiondetail: "/problem/:id",
 
 };
 
@@ -60,6 +60,10 @@ export const getQuizCategoryFromPath = (pathname) => {
 export const getRequestedPageFromPath = (pathname) => {
   if (getQuizCategoryFromPath(pathname)) {
     return "quiz";
+  }
+
+  if (pathname === "/problem" || /^\/problem\/[^/]+\/?$/.test(pathname)) {
+    return "Questiondetail";
   }
 
   return pathToPage[pathname] || "login";

@@ -105,7 +105,7 @@ const Page = ({ onLogin, onSignup }) => {
             </li>
           </ul>
         </div>
-      </div>\
+      </div>
       
 
       <div className="bg-[#D1D3D8]">
