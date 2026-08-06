@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import quizCategories from "./QuizCategories";
 import UserMenu from "./UserMenu";
+import Footer from "./LandingPage/Footer";
+import Slider from "./LandingPage/Slider";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
 import QuestionBox from "./questionBox";
@@ -14,6 +16,7 @@ import javascriptImg from "./LandingPage/imaiges/javascript.png";
 import cssImg from "./LandingPage/imaiges/css.png";
 import pythonImg from "./LandingPage/imaiges/python.png";
 import htmlImg from "./LandingPage/imaiges/html.png";
+
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -300,11 +303,20 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
-            {!userBlocked && (
-              <Link className="secondary-action" to={pageRoutes.profile}>
-                My Profile
-              </Link>
-            )}
+
+              
+           
+          <div className ="upperheader">
+            <div>Course</div>
+            <div>Practice</div>
+            <div><a href="/javaproblem">Problem</a></div>
+            <div>Game</div>
+            <div><a href="/compiler">Compiler</a></div>
+
+            </div> 
+            
+            {/* {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>} */}
+
             <button
               className="secondary-action"
               onClick={onToggleTheme}
@@ -315,13 +327,13 @@ function Quiz({
             {!userBlocked ? (
               <UserMenu user={user} onLogout={onLogout} />
             ) : (
-              <button
+              <buCompilertton
                 className="secondary-action"
                 onClick={onLogout}
                 type="button"
               >
                 Logout
-              </button>
+              </buCompilertton>
             )}
           </div>
         </header>
@@ -409,6 +421,7 @@ function Quiz({
             </div>
 
             <div className=" ">
+            <div className="witth-full flex flex-wrap">
               <div className="practice-gride">
                 <div className="card-container">
                   <div>
@@ -419,6 +432,8 @@ function Quiz({
                           Java
                           <br />1 question
                         </h2>
+                        <h2>Java</h2>
+                        <p>1 question</p>
                         <button className="button">open</button>
                       </div>
                     </a>
@@ -434,6 +449,9 @@ function Quiz({
                           no question yet open
                         </h2>
                         <button className="button">open</button>
+                        <h2>C++</h2>
+                        <p>No questions yets</p>
+                        open
                       </div>
                     </a>
                   </div>
@@ -447,6 +465,8 @@ function Quiz({
                           <br />1 question
                         </h2>
                         <button className="button">open</button>
+                        <h2>HTML</h2>
+                        <p>1 question</p>
                       </div>
                     </a>
                   </div>
@@ -460,6 +480,8 @@ function Quiz({
                           <br />1 question
                         </h2>
                         <button className="button">open</button>
+                        <h2>CSS</h2>
+                        <p>1 question</p>
                       </div>
                     </a>
                   </div>
@@ -476,8 +498,20 @@ function Quiz({
                       </div>
                     </a>
                   </div>
+                    <a href="/javascriptproblem">
+                      <div className="card">
+                        <h2>JavaScript</h2>
+                        <p>2 questions</p>
+                      </div>
+                    </a>
+                  </div>
+                  
                 </div>
               </div>
+            </div>
+
+            <div>
+              <Footer />
             </div>
           </div>
           <div>

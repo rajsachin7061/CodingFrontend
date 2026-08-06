@@ -1108,7 +1108,10 @@
 }
 
 .admin-form input,
-.admin-form select {
+.admin-form select,
+.admin-form textarea,
+.problem-admin-filters input,
+.problem-admin-filters select {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -1118,10 +1121,70 @@
   padding: 10px 12px;
 }
 
+.admin-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
 .admin-form input:focus,
-.admin-form select:focus {
+.admin-form select:focus,
+.admin-form textarea:focus,
+.problem-admin-filters input:focus,
+.problem-admin-filters select:focus {
   border-color: #0f766e;
   outline: 3px solid rgba(94, 234, 212, 0.28);
+}
+
+.admin-problem-manager {
+  display: grid;
+  gap: 18px;
+}
+
+.problem-admin-filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) 180px 180px;
+}
+
+.problem-admin-row {
+  align-items: flex-start;
+}
+
+.problem-form {
+  margin-top: 6px;
+}
+
+.problem-admin-message {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  color: #3730a3;
+  font-weight: 900;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.testcase-editor,
+.starter-code-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.testcase-row {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.starter-code-editor h3 {
+  margin: 0;
+}
+
+.admin-problem-pagination {
+  margin-top: 0;
 }
 
 .option-editor {
@@ -1599,6 +1662,10 @@
     grid-template-columns: 1fr;
   }
 
+  .problem-admin-filters {
+    grid-template-columns: 1fr;
+  }
+
   .hero-copy h1,
   .auth-copy h1,
   .result-panel h1 {
@@ -1699,4 +1766,211 @@
   padding: 30px;
  
   text-align: center;
+}
+.header {
+  display: flex;
+  row-gap: 10px;
+  margin:
+}
+
+.problems-shell {
+  background: #f4f7fb;
+  color: #172033;
+  min-height: 100vh;
+  padding: 28px;
+}
+
+.problems-header {
+  align-items: flex-end;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+}
+
+.problems-header h1 {
+  color: #0f172a;
+  font-size: clamp(2.1rem, 5vw, 4rem);
+  line-height: 1;
+  margin: 8px 0;
+}
+
+.problems-header p {
+  color: #475569;
+  margin: 0;
+}
+
+.problems-header > span {
+  background: #ffffff;
+  border: 1px solid #dce5f1;
+  border-radius: 999px;
+  color: #334155;
+  font-weight: 900;
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.problem-filter-bar {
+  background: #ffffff;
+  border: 1px solid #dce5f1;
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) 180px 180px;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+  padding: 14px;
+}
+
+.problem-filter-bar input,
+.problem-filter-bar select {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  font: inherit;
+  min-height: 44px;
+  padding: 9px 11px;
+}
+
+.problem-list {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.problem-list-card {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dce5f1;
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.problem-card-meta,
+.problem-tags {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.problem-card-meta span,
+.problem-tags span {
+  background: #f1f5f9;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.problem-card-meta .problem-difficulty.easy {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.problem-card-meta .problem-difficulty.medium {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.problem-card-meta .problem-difficulty.hard {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.problem-list-card h2 {
+  color: #0f172a;
+  font-size: 1.2rem;
+  margin: 10px 0;
+}
+
+.problem-solve-button,
+.problem-pagination button {
+  background: #1d4ed8;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 10px 16px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.problem-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 20px auto 0;
+  max-width: 1180px;
+}
+
+.problem-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.problem-state {
+  color: #475569;
+  font-weight: 900;
+  margin: 24px auto;
+  max-width: 1180px;
+}
+
+.problem-state.error {
+  color: #be123c;
+}
+
+@media (max-width: 760px) {
+  .problems-shell {
+    padding: 18px;
+  }
+
+  .problems-header,
+  .problem-list-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .problem-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .problem-solve-button {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+
+
+.upperheader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  height: 80px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.header a {
+  text-decoration: none;
+  color: #1a1a1a;
+  transition: 0.3s;
+}
+
+.header a:hover {
+  color: #3b82f6;
 }

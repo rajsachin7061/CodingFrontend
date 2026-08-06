@@ -9,16 +9,9 @@ import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Link } from "react-router-dom";
-import { pageRoutes } from "../pageRoutes";
-import UserMenu from "./UserMenu";
+import { pageRoutes } from "../../pageRoutes";
+import UserMenu from "../UserMenu";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "" : "https://codingbackend-rdyv.onrender.com")
-).replace(/\/+$/, "");
-const API_FALLBACK_BASE_URL = "https://codingbackend-rdyv.onrender.com";
-const apiUrl = (path) => `${API_BASE_URL}${path}`;
-const fallbackApiUrl = (path) => `${API_FALLBACK_BASE_URL}${path}`;
 
 const languageConfigs = {
   javascript: {
@@ -135,30 +128,6 @@ h1 {
 const serverLanguages = new Set(["python", "java", "cpp"]);
 const previewLanguages = new Set(["html", "css"]);
 
-const normalizeLanguageKey = (value) => {
-  const normalized = String(value || "")
-    .trim()
-    .toLowerCase();
-
-  if (["java", "javac", "jvm"].includes(normalized)) {
-    return "java";
-  }
-
-  if (["c++", "cpp", "c/c++", "c"].includes(normalized)) {
-    return "cpp";
-  }
-
-  if (["python", "py"].includes(normalized)) {
-    return "python";
-  }
-
-  if (["javascript", "js"].includes(normalized)) {
-    return "javascript";
-  }
-
-  return normalized;
-};
-
 const runApiFetch = async (path, options) => {
   const primaryUrl = apiUrl(path);
   const response = await fetch(primaryUrl, options);
@@ -197,51 +166,17 @@ const getCssPreview = (code) => `<!doctype html>
   </body>
 </html>`;
 
-function CodeCompiler({
-  onLogout,
-  onToggleTheme,
-  theme,
-  user,
-  preferredLanguage,
-  problemId,
-  hiddenTestCases = [],
-  onVerificationStateChange,
-  onCodeStateChange,
-}) {
+function Compiler({ onLogout, onToggleTheme, theme, user }) {
   const [language, setLanguage] = useState("javascript");
   const [codeByLanguage, setCodeByLanguage] = useState(() =>
-    Object.fromEntries(
-      Object.entries(languageConfigs).map(([key, config]) => [
-        key,
-        config.starter,
-      ]),
-    ),
+    Object.fromEntries(Object.entries(languageConfigs).map(([key, config]) => [key, config.starter])),
   );
   const [stdinByLanguage, setStdinByLanguage] = useState(() =>
-    Object.fromEntries(
-      Object.entries(languageConfigs).map(([key, config]) => [
-        key,
-        config.stdin || "",
-      ]),
-    ),
+    Object.fromEntries(Object.entries(languageConfigs).map(([key, config]) => [key, config.stdin || ""])),
   );
-  const [output, setOutput] = useState(
-    "Choose a language, write code, then click Run Code.",
-  );
+  const [output, setOutput] = useState("Choose a language, write code, then click Run Code.");
   const [previewHtml, setPreviewHtml] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [codeState, setCodeState] = useState({
-    language,
-    code: languageConfigs[language].starter,
-  });
-  const [verificationState, setVerificationState] = useState({
-    status: "idle",
-    passed: 0,
-    total: 0,
-    message: "",
-    canSubmit: false,
-  });
   const frameRef = useRef(null);
   const timeoutRef = useRef(null);
 
@@ -261,68 +196,19 @@ function CodeCompiler({
 
   useEffect(() => clearRun, []);
 
-  useEffect(() => {
-    const nextLanguage = normalizeLanguageKey(preferredLanguage);
-
-    if (!nextLanguage || !languageConfigs[nextLanguage]) {
-      return;
-    }
-
-    setLanguage(nextLanguage);
-    setPreviewHtml("");
-    setOutput(`Ready to run ${languageConfigs[nextLanguage].label}.`);
-  }, [preferredLanguage]);
-
-  const updateVerificationState = (nextState) => {
-    setVerificationState((current) => {
-      const nextValue = { ...current, ...nextState };
-      onVerificationStateChange?.(nextValue);
-      return nextValue;
-    });
-  };
-
   const updateCode = (nextCode) => {
     setCodeByLanguage((current) => ({ ...current, [language]: nextCode }));
-    setCodeState({ language, code: nextCode });
-    updateVerificationState({
-      status: "idle",
-      passed: 0,
-      total: 0,
-      message: "",
-      canSubmit: false,
-    });
-    onCodeStateChange?.({ language, code: nextCode });
   };
 
-  useEffect(() => {
-    const nextCode = codeByLanguage[language] || config.starter;
-    setCodeState({ language, code: nextCode });
-    onCodeStateChange?.({ language, code: nextCode });
-  }, [language, codeByLanguage, config.starter, onCodeStateChange]);
-
   const updateStdin = (event) => {
-    setStdinByLanguage((current) => ({
-      ...current,
-      [language]: event.target.value,
-    }));
+    setStdinByLanguage((current) => ({ ...current, [language]: event.target.value }));
   };
 
   const changeLanguage = (event) => {
     const nextLanguage = event.target.value;
-    const nextCode =
-      codeByLanguage[nextLanguage] || languageConfigs[nextLanguage].starter;
     setLanguage(nextLanguage);
     setPreviewHtml("");
     setOutput(`Ready to run ${languageConfigs[nextLanguage].label}.`);
-    setCodeState({ language: nextLanguage, code: nextCode });
-    updateVerificationState({
-      status: "idle",
-      passed: 0,
-      total: 0,
-      message: "",
-      canSubmit: false,
-    });
-    onCodeStateChange?.({ language: nextLanguage, code: nextCode });
   };
 
   const runJavaScript = () =>
@@ -413,131 +299,6 @@ function CodeCompiler({
     return "Preview updated.";
   };
 
-  const runVerification = async () => {
-    const totalCases = Array.isArray(hiddenTestCases)
-      ? hiddenTestCases.length
-      : 0;
-
-    if (!problemId || totalCases === 0 || !serverLanguages.has(language)) {
-      updateVerificationState({
-        status: "idle",
-        passed: 0,
-        total: 0,
-        message: "",
-        canSubmit: false,
-      });
-      return;
-    }
-
-    updateVerificationState({
-      status: "running",
-      passed: 0,
-      total: totalCases,
-      message: "Verifying against hidden test cases...",
-      canSubmit: false,
-    });
-
-    try {
-      const response = await runApiFetch(
-        `/api/problems/${problemId}/verify-solution`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ language, code }),
-        },
-      );
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Could not verify this solution.");
-      }
-
-      const passed = Number(payload.passedCount || 0);
-      const total = Number(payload.totalCount || 0);
-      const allPassed = Boolean(
-        total > 0 && payload.allPassed && passed === total,
-      );
-      const nextMessage = allPassed
-        ? "✅ All test cases verified successfully.\nYou can now submit your solution."
-        : "❌ Test cases failed.\nPlease check your logic and try again.";
-
-      updateVerificationState({
-        status: allPassed ? "passed" : "failed",
-        passed,
-        total,
-        message: nextMessage,
-        canSubmit: allPassed,
-      });
-    } catch {
-      updateVerificationState({
-        status: "failed",
-        passed: 0,
-        total: totalCases,
-        message:
-          "❌ Test cases failed.\nPlease check your logic and try again.",
-        canSubmit: false,
-      });
-    }
-  };
-
-  const submitSolution = async () => {
-    if (!problemId) {
-      updateVerificationState({
-        status: "failed",
-        message: "Problem context is missing. Cannot submit.",
-      });
-      return;
-    }
-
-    if (!verificationState.canSubmit) {
-      updateVerificationState({
-        status: "failed",
-        message: "You must pass verification before submitting.",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    updateVerificationState({
-      status: "running",
-      message: "Submitting solution...",
-    });
-
-    try {
-      const response = await runApiFetch(
-        `/api/problems/${problemId}/submit-solution`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            language: codeState.language,
-            code: codeState.code,
-            userEmail: user?.email || "",
-            username: user?.name || "",
-          }),
-        },
-      );
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Could not submit this solution.");
-      }
-
-      updateVerificationState({
-        status: "passed",
-        message: "✅ Solution submitted and accepted.",
-      });
-      setOutput(payload.message || "Solution accepted.");
-    } catch (error) {
-      updateVerificationState({
-        status: "failed",
-        message: error?.message || "Solution submission failed.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const runCode = async () => {
     setIsRunning(true);
     setOutput("Running...");
@@ -551,7 +312,6 @@ function CodeCompiler({
           : await runJavaScript();
 
       setOutput(nextOutput);
-      await runVerification();
     } catch (error) {
       setOutput(error?.message || "Could not run this code.");
     } finally {
@@ -561,10 +321,7 @@ function CodeCompiler({
 
   const resetCode = () => {
     updateCode(config.starter);
-    setStdinByLanguage((current) => ({
-      ...current,
-      [language]: config.stdin || "",
-    }));
+    setStdinByLanguage((current) => ({ ...current, [language]: config.stdin || "" }));
     setPreviewHtml("");
     setOutput(`Reset ${config.label} starter code.`);
   };
@@ -574,14 +331,8 @@ function CodeCompiler({
       <header className="user-bar" aria-label="Compiler navigation">
         <span>Code Compiler</span>
         <div className="user-actions">
-          <Link className="secondary-action" to={pageRoutes.quiz}>
-            Quiz
-          </Link>
-          <button
-            className="secondary-action"
-            onClick={onToggleTheme}
-            type="button"
-          >
+          <Link className="secondary-action" to={pageRoutes.quiz}>Quiz</Link>
+          <button className="secondary-action" onClick={onToggleTheme} type="button">
             {theme === "dark" ? "Light Mode" : "Dark Mode"}
           </button>
           <UserMenu user={user} onLogout={onLogout} />
@@ -599,36 +350,13 @@ function CodeCompiler({
               Language
               <select onChange={changeLanguage} value={language}>
                 {Object.entries(languageConfigs).map(([key, item]) => (
-                  <option key={key} value={key}>
-                    {item.label}
-                  </option>
+                  <option key={key} value={key}>{item.label}</option>
                 ))}
               </select>
             </label>
-            <button
-              className="secondary-action"
-              onClick={resetCode}
-              type="button"
-            >
-              Reset
-            </button>
-            <button
-              className="primary-action"
-              disabled={isRunning}
-              onClick={runCode}
-              type="button"
-            >
+            <button className="secondary-action" onClick={resetCode} type="button">Reset</button>
+            <button className="primary-action" disabled={isRunning} onClick={runCode} type="button">
               {isRunning ? "Running..." : "Run Code"}
-            </button>
-            <button
-              className="primary-action"
-              disabled={
-                !verificationState.canSubmit || isSubmitting || !problemId
-              }
-              onClick={submitSolution}
-              type="button"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Solution"}
             </button>
           </div>
         </div>
@@ -636,51 +364,8 @@ function CodeCompiler({
         {config.showInput && (
           <label className="compiler-input">
             Input
-            <textarea
-              onChange={updateStdin}
-              placeholder="Program input / stdin"
-              rows={3}
-              value={stdin}
-            />
+            <textarea onChange={updateStdin} placeholder="Program input / stdin" rows={3} value={stdin} />
           </label>
-        )}
-
-        {(verificationState.total > 0 ||
-          verificationState.status !== "idle") && (
-          <div
-            className="compiler-verification-card"
-            style={{
-              background:
-                verificationState.status === "passed"
-                  ? "#ecfdf3"
-                  : verificationState.status === "running"
-                    ? "#eff6ff"
-                    : "#fef2f2",
-              border: "1px solid #cbd5e1",
-              borderRadius: "10px",
-              padding: "12px 14px",
-              display: "grid",
-              gap: "6px",
-            }}
-          >
-            <strong
-              style={{
-                color:
-                  verificationState.status === "passed"
-                    ? "#166534"
-                    : verificationState.status === "running"
-                      ? "#1d4ed8"
-                      : "#991b1b",
-              }}
-            >
-              {verificationState.message || "Verification status"}
-            </strong>
-            <span style={{ color: "#334155", fontSize: "0.95rem" }}>
-              {verificationState.total > 0
-                ? `Passed: ${verificationState.passed} / ${verificationState.total} test cases`
-                : "Verification pending."}
-            </span>
-          </div>
         )}
 
         <div className="compiler-grid">
@@ -702,20 +387,11 @@ function CodeCompiler({
 
           <div className="compiler-card output-card">
             <div className="compiler-card-header">
-              <strong>
-                {previewLanguages.has(language) ? "Preview" : "Output"}
-              </strong>
-              <span>
-                {previewLanguages.has(language) ? "Browser" : "Console"}
-              </span>
+              <strong>{previewLanguages.has(language) ? "Preview" : "Output"}</strong>
+              <span>{previewLanguages.has(language) ? "Browser" : "Console"}</span>
             </div>
             {previewHtml ? (
-              <iframe
-                className="compiler-preview"
-                sandbox="allow-scripts"
-                srcDoc={previewHtml}
-                title="Code output preview"
-              />
+              <iframe className="compiler-preview" sandbox="allow-scripts" srcDoc={previewHtml} title="Code output preview" />
             ) : (
               <pre className="compiler-output">{output}</pre>
             )}
@@ -726,4 +402,4 @@ function CodeCompiler({
   );
 }
 
-export default CodeCompiler;
+export default Compiler;

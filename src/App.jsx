@@ -4,8 +4,8 @@ import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
 import ContactUs from "./Components/LandingPage/Contctus.jsx";
 import Participates from "./Components/LandingPage/Participate.jsx";
 import QuizStarts from "./Components/Quizstart.jsx";
+import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
-
 
 import {
   Navigate,
@@ -1138,6 +1138,16 @@ function App() {
         );
       }
 
+      if (mode === "Questiondetail") {
+        return (
+          <Questiondetail
+            theme={theme}
+            user={activeUser}
+            problemId={location.pathname.replace(/^\/problem\//, "")}
+          />
+        );
+      }
+
       return (
         <Quiz
           onLogout={logout}
@@ -1213,7 +1223,7 @@ function App() {
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
-      <Route path="/joinnow" element={<Join/>} />
+      <Route path="/joinnow" element={<Join />} />
 
       <Route path="/aboutus/codesnipers" element={<AboutUs />} />
       <Route path="/privacy/codesnipers" element={<PrivacyPolicy />} />
@@ -1229,12 +1239,25 @@ function App() {
         element={<Participates />}
       />
       <Route path="/quiz/start" element={<QuizStarts />} />
+
+      <Route path="/participate/challenge/react/" element={<Participates />} />
+      <Route path="/submit" element={<Thanks />} />
+      <Route
+        path="/participate/challenge/frontend/"
+        element={<Participates />}
+      />
+      <Route
+        path="/participate/challenge/javascript/"
+        element={<Participates />}
+      />
+      <Route path="/quiz/start" element={<QuizStarts />} />
       <Route path="/javaproblem" element={<Problems />} />
       <Route path="/quiz/cppproblem" element={<Problems />} />
       <Route path="/htmlproblem" element={<Problems />} />
       <Route path="/cssproblem" element={<Problems />} />
-      <Route path="/javascriptproblem" element={<Problems/>}/>
-      <Route path="/question-details" element={<Questiondetail/>}/>
+      <Route path="/javascriptproblem" element={<Problems />} />
+      <Route path="/question-details" element={currentPage} />
+      <Route path="/problem/:id" element={currentPage} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />

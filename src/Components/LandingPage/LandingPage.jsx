@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { pageRoutes } from "../../pageRoutes.js";
 import logoImg from "./imaiges/logo.png";
 import webImg from "./imaiges/landingImaige.png";
 import contestImg from "./imaiges/contest.png";
@@ -79,6 +81,10 @@ const Page = ({ onLogin, onSignup }) => {
             <li onClick={closeMenu}>Practice</li>
             <li onClick={closeMenu}>Problem</li>
             <li onClick={closeMenu}>Game</li>
+
+            <Link to={pageRoutes.compiler} onClick={closeMenu}>
+              <li>Compiler</li>
+            </Link>
             <li
               className="nav-action"
               onClick={() => {
@@ -95,11 +101,12 @@ const Page = ({ onLogin, onSignup }) => {
                 onSignup();
               }}
             >
-             <button class="button">Signup</button> 
+              <button class="button">Signup</button>
             </li>
           </ul>
         </div>
       </div>
+      
 
       <div className="bg-[#D1D3D8]">
         <div className="landigepage_imaige">
@@ -238,7 +245,7 @@ const Page = ({ onLogin, onSignup }) => {
                 <p className="mt-4 text-slate-600">Hard</p>
                 <p className="mt-2 text-slate-700 font-semibold">Prize ₹1000</p>
                 <button className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-800">
-                <a href="/participate/challenge/react/">Participate</a>  
+                  <a href="/participate/challenge/react/">Participate</a>
                 </button>
               </div>
 
