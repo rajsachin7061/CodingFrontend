@@ -307,7 +307,7 @@ function Quiz({
               
            
           <div className ="upperheader">
-            <div>Course</div>
+            <div><a href="/all-courses">Course</a></div>
             <div>Practice</div>
             <div><a href="/javaproblem">Problem</a></div>
             <div>Game</div>

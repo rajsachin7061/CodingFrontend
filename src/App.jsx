@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import Courses from "./Components/Courses/Course.jsx";
 import AboutUs from "./Components/LandingPage/Aboutus.jsx";
 import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
 import ContactUs from "./Components/LandingPage/Contctus.jsx";
@@ -1258,6 +1259,8 @@ function App() {
       <Route path="/javascriptproblem" element={<Problems />} />
       <Route path="/question-details" element={currentPage} />
       <Route path="/problem/:id" element={currentPage} />
+
+      <Route path="/all-courses" element={<Courses/>} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
