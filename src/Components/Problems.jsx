@@ -105,9 +105,9 @@ const Problems = () => {
     <main className="problems-shell">
       <section className="problems-header">
         <div>
-          <p className="eyebrow">Problem Bank</p>
+          <p className="eyebrow">Problem Collection</p>
           <h1>{category || "All"} Problems</h1>
-          <p>Practice coding problems loaded from the database.</p>
+          <p>Practice coding problems with codesniper. And crack interview your dream company..</p>
         </div>
         <span>{meta.total} problems</span>
       </section>
