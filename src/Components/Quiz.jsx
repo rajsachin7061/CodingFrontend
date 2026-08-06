@@ -8,7 +8,6 @@ import Slider from "./LandingPage/Slider";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
 import QuestionBox from "./questionBox";
-import Footer from "./LandingPage/Footer";
 
 import javaImg from "./LandingPage/imaiges/java.png";
 import cppImg from "./LandingPage/imaiges/c++.png";
@@ -16,7 +15,6 @@ import javascriptImg from "./LandingPage/imaiges/javascript.png";
 import cssImg from "./LandingPage/imaiges/css.png";
 import pythonImg from "./LandingPage/imaiges/python.png";
 import htmlImg from "./LandingPage/imaiges/html.png";
-
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -303,18 +301,20 @@ function Quiz({
         <header className="user-bar" aria-label="Signed in user">
           <span>Hi, {user.name}</span>
           <div className="user-actions">
+            <div className="upperheader">
+              <div>
+                <a href="/all-courses">Course</a>
+              </div>
+              <div>Practice</div>
+              <div>
+                <a href="/javaproblem">Problem</a>
+              </div>
+              <div>Game</div>
+              <div>
+                <a href="/compiler">Compiler</a>
+              </div>
+            </div>
 
-              
-           
-          <div className ="upperheader">
-            <div><a href="/all-courses">Course</a></div>
-            <div>Practice</div>
-            <div><a href="/javaproblem">Problem</a></div>
-            <div>Game</div>
-            <div><a href="/compiler">Compiler</a></div>
-
-            </div> 
-            
             {/* {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>} */}
 
             <button
@@ -327,13 +327,13 @@ function Quiz({
             {!userBlocked ? (
               <UserMenu user={user} onLogout={onLogout} />
             ) : (
-              <buCompilertton
+              <button
                 className="secondary-action"
                 onClick={onLogout}
                 type="button"
               >
                 Logout
-              </buCompilertton>
+              </button>
             )}
           </div>
         </header>
@@ -421,83 +421,83 @@ function Quiz({
             </div>
 
             <div className=" ">
-            <div className="witth-full flex flex-wrap">
-              <div className="practice-gride">
-                <div className="card-container">
-                  <div>
-                    <a href="/javaproblem">
-                      <div className="card active">
-                        <img src={javaImg} alt="Java Logo" className="logo" />
-                        <h2 className="text">
-                          Java
-                          <br />1 question
-                        </h2>
-                        <h2>Java</h2>
-                        <p>1 question</p>
-                        <button className="button">open</button>
-                      </div>
-                    </a>
-                  </div>
+              <div className="witth-full flex flex-wrap">
+                <div className="practice-gride">
+                  <div className="card-container">
+                    <div>
+                      <a href="/javaproblem">
+                        <div className="card active">
+                          <img src={javaImg} alt="Java Logo" className="logo" />
+                          <h2 className="text">
+                            Java
+                            <br />1 question
+                          </h2>
+                          <h2>Java</h2>
+                          <p>1 question</p>
+                          <button className="button">open</button>
+                        </div>
+                      </a>
+                    </div>
 
-                  <div>
-                    <a href="/quiz/cppproblem">
-                      <div className="card">
-                        <img src={cppImg} alt="C++" className="logo" />
-                        <h2 className="text">
-                          C++
-                          <br />
-                          no question yet open
-                        </h2>
-                        <button className="button">open</button>
-                        <h2>C++</h2>
-                        <p>No questions yets</p>
-                        open
-                      </div>
-                    </a>
-                  </div>
+                    <div>
+                      <a href="/quiz/cppproblem">
+                        <div className="card">
+                          <img src={cppImg} alt="C++" className="logo" />
+                          <h2 className="text">
+                            C++
+                            <br />
+                            no question yet open
+                          </h2>
+                          <button className="button">open</button>
+                          <h2>C++</h2>
+                          <p>No questions yets</p>
+                          open
+                        </div>
+                      </a>
+                    </div>
 
-                  <div>
-                    <a href="/htmlproblem">
-                      <div className="card">
-                        <img src={htmlImg} alt="HTML" className="logo" />
-                        <h2 className="text">
-                          HTML
-                          <br />1 question
-                        </h2>
-                        <button className="button">open</button>
-                        <h2>HTML</h2>
-                        <p>1 question</p>
-                      </div>
-                    </a>
-                  </div>
+                    <div>
+                      <a href="/htmlproblem">
+                        <div className="card">
+                          <img src={htmlImg} alt="HTML" className="logo" />
+                          <h2 className="text">
+                            HTML
+                            <br />1 question
+                          </h2>
+                          <button className="button">open</button>
+                          <h2>HTML</h2>
+                          <p>1 question</p>
+                        </div>
+                      </a>
+                    </div>
 
-                  <div>
-                    <a href="/cssproblem">
-                      <div className="card">
-                        <img src={cssImg} alt="CSS" className="logo" />
-                        <h2 className="text">
-                          CSS
-                          <br />1 question
-                        </h2>
-                        <button className="button">open</button>
-                        <h2>CSS</h2>
-                        <p>1 question</p>
-                      </div>
-                    </a>
-                  </div>
+                    <div>
+                      <a href="/cssproblem">
+                        <div className="card">
+                          <img src={cssImg} alt="CSS" className="logo" />
+                          <h2 className="text">
+                            CSS
+                            <br />1 question
+                          </h2>
+                          <button className="button">open</button>
+                          <h2>CSS</h2>
+                          <p>1 question</p>
+                        </div>
+                      </a>
+                    </div>
 
-                  <div>
-                    <a href="/pythonproblem">
-                      <div className="card">
-                        <img src={pythonImg} alt="Python" className="logo" />
-                        <h2 className="text">
-                          Python
-                          <br />2 questions
-                        </h2>
-                        <button className="button">open</button>
-                      </div>
-                    </a>
-                  </div>
+                    <div>
+                      <a href="/pythonproblem">
+                        <div className="card">
+                          <img src={pythonImg} alt="Python" className="logo" />
+                          <h2 className="text">
+                            Python
+                            <br />2 questions
+                          </h2>
+                          <button className="button">open</button>
+                        </div>
+                      </a>
+                    </div>
                     <a href="/javascriptproblem">
                       <div className="card">
                         <h2>JavaScript</h2>
@@ -505,7 +505,6 @@ function Quiz({
                       </div>
                     </a>
                   </div>
-                  
                 </div>
               </div>
             </div>
@@ -513,9 +512,6 @@ function Quiz({
             <div>
               <Footer />
             </div>
-          </div>
-          <div>
-            <Footer />
           </div>
         </section>
 
