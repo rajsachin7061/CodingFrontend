@@ -1,7 +1,7 @@
 const Courses = () => {
   return (
-    <div><h1>Here all courses for you</h1></div>
+    <div>{}</div>
   );
 };
 
-export default Courses;
+export default Courses;  
