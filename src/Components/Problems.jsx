@@ -146,7 +146,7 @@ const Problems = () => {
       {status === "loading" && <p className="problem-state">Loading problems...</p>}
       {status === "error" && <p className="problem-state error">{message}</p>}
       {status === "ready" && !problems.length && (
-        <p className="problem-state">No problems found. Add problems from the Admin Panel.</p>
+        <p className="problem-state">No problems found. Add problems from the Admin.</p>
       )}
 
       <section className="problem-list" aria-label="Problems">

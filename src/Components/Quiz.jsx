@@ -15,6 +15,9 @@ import javascriptImg from "./LandingPage/imaiges/javascript.png";
 import cssImg from "./LandingPage/imaiges/css.png";
 import pythonImg from "./LandingPage/imaiges/python.png";
 import htmlImg from "./LandingPage/imaiges/html.png";
+import logoImg from "./LandingPage/imaiges/logo.png";
+import heroImg from "./LandingPage/imaiges/landingImaige.png";
+import "./home.css";
 
 const formatClock = (totalSeconds) => {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -296,32 +299,36 @@ function Quiz({
   ]);
 
   if (!started) {
+    const contestCardSubtitle = isBeforeContest
+      ? `Starts in ${formatClock(timeToStartSeconds)}`
+      : isAfterContest
+        ? "Contest has ended"
+        : `Duration ${formatClock(contestDurationSeconds)} | ${contestQuestionCount} questions`;
+
     return (
-      <main className={`quiz-shell ${theme}-theme`}>
-        <header className="user-bar" aria-label="Signed in user">
-          <span>Hi, {user.name}</span>
-          <div className="user-actions">
-            <div className="upperheader">
-              <div>
-                <a href="/all-courses">Course</a>
-              </div>
-              <div>Practice</div>
-              <div>
-                <a href="/javaproblem">Problem</a>
-              </div>
-              <div>Game</div>
-              <div>
-                <a href="/compiler">Compiler</a>
-              </div>
-            </div>
+      <main className={`quiz-shell home-page ${theme}-theme`}>
+        <nav className="home-navbar" aria-label="Main navigation">
+          <div className="home-navbar-left">
+            <img alt="Code Snipers logo" className="home-logo" src={logoImg} />
+            <span className="home-brand">Code Snipers</span>
+            <span className="home-greeting">Hi, {user.name}</span>
+          </div>
 
-            {/* {!userBlocked && <Link className="secondary-action" to={pageRoutes.profile}>My Profile</Link>} */}
+          <div className="home-nav-links">
+            <a href="/all-courses">Course</a>
+            <span>Practice</span>
+            <a href="/javaproblem">Problem</a>
+            <span>Game</span>
+            <a href="/compiler">Compiler</a>
+          </div>
 
+          <div className="home-navbar-right">
             <button
-              className="secondary-action"
+              className="home-theme-btn"
               onClick={onToggleTheme}
               type="button"
             >
+              <span aria-hidden="true">{theme === "dark" ? "☀" : "🌙"}</span>
               {theme === "dark" ? "Light Mode" : "Dark Mode"}
             </button>
             {!userBlocked ? (
@@ -336,205 +343,315 @@ function Quiz({
               </button>
             )}
           </div>
-        </header>
+        </nav>
 
-        <section className="hero-panel">
-          <div className="hero-copy">
-            <p className="eyebrow">Quick brain workout</p>
-            <h1>Code Snipers</h1>
-            <p className="hero-text">
-              <strong>{contestName}</strong>
-            </p>
-            <p className="hero-text">
-              Contest uses one full timer for the entire exam. You can see
-              remaining exam time live.
-            </p>
-            {isBeforeContest && (
-              <p className="hero-text">
-                Contest starts in{" "}
-                <strong>{formatLongCountdown(timeToStartSeconds)}</strong>
+        <div className="home-container">
+          <section className="home-hero">
+            <div className="home-hero-content">
+              <span className="home-badge">Quick brain workout ⚡</span>
+              <h1 className="home-hero-title">
+                Code <span className="accent">Snipers</span>
+              </h1>
+              <p className="home-contest-name">{contestName}</p>
+              <p className="home-description">
+                Contest uses one full timer for the entire exam. You can see
+                remaining exam time live.
               </p>
-            )}
-            <div className="practice-panel">
-              <strong>Start</strong>
-              <div className="practice-grid">
-                <button className="practice-card" type="button">
-                  <a href="/quiz/start/">
-                    <span>Quiz</span>
-                    <br></br>
-                    <small>Practice topic-wise questions.</small>
-                  </a>
-                </button>
-                <button
-                  className="practice-card"
-                  disabled={!isContestOpen || !questions.length}
-                  onClick={startContest}
-                  type="button"
-                >
-                  <span>Contest</span>
-                  <small>
-                    {isBeforeContest
-                      ? `Starts in ${formatClock(timeToStartSeconds)}`
-                      : isAfterContest
-                        ? "Contest has ended"
-                        : `Duration ${formatClock(contestDurationSeconds)} | ${contestQuestionCount} questions`}
-                  </small>
-                </button>
+              {isBeforeContest && (
+                <p className="home-description">
+                  Contest starts in{" "}
+                  <strong>{formatLongCountdown(timeToStartSeconds)}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="home-hero-visual">
+              <div aria-hidden="true" className="home-float-card home-float-code">
+                {"</>"}
               </div>
+              <div aria-hidden="true" className="home-float-card home-float-rank">
+                <span>🏆 Rank</span>
+                <strong>#128</strong>
+              </div>
+              <img
+                alt="Developer coding on laptop"
+                className="home-hero-img"
+                src={heroImg}
+              />
+            </div>
+          </section>
+
+          <section className="home-start">
+            <h2 className="home-section-title">Start</h2>
+            <div className="home-start-cards">
+              <button className="home-action-card" type="button">
+                <a href="/quiz/start/">
+                  <span aria-hidden="true" className="home-action-icon purple">
+                    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+                      <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                        stroke="currentColor"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M14 2v6h6M16 13H8M16 17H8M10 9H8"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </span>
+                  <span className="home-action-body">
+                    <strong>Quiz</strong>
+                    <small>Practice topic-wise questions.</small>
+                  </span>
+                  <span aria-hidden="true" className="home-action-arrow">
+                    →
+                  </span>
+                </a>
+              </button>
+
+              <button
+                className="home-action-card"
+                disabled={!isContestOpen || !questions.length}
+                onClick={startContest}
+                type="button"
+              >
+                <span aria-hidden="true" className="home-action-icon green">
+                  <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+                    <path
+                      d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </span>
+                <span className="home-action-body">
+                  <strong>Contest</strong>
+                  <small>{contestCardSubtitle}</small>
+                </span>
+                <span aria-hidden="true" className="home-action-arrow">
+                  →
+                </span>
+              </button>
+
               {isLeaderboardPublished && (
                 <button
-                  className="secondary-action contest-leaderboard-toggle"
+                  className="home-action-card"
                   onClick={() =>
                     setShowContestLeaderboard((current) => !current)
                   }
                   type="button"
                 >
-                  {showContestLeaderboard
-                    ? "Hide Contest Leaderboard"
-                    : "View Contest Leaderboard"}
+                  <span aria-hidden="true" className="home-action-icon orange">
+                    <svg fill="none" height="22" viewBox="0 0 24 24" width="22">
+                      <path
+                        d="M18 20V10M12 20V4M6 20v-6"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </span>
+                  <span className="home-action-body">
+                    <strong>
+                      {showContestLeaderboard
+                        ? "Hide Contest Leaderboard"
+                        : "View Contest Leaderboard"}
+                    </strong>
+                    <small>See top performers in this contest.</small>
+                  </span>
+                  <span aria-hidden="true" className="home-action-arrow">
+                    →
+                  </span>
                 </button>
               )}
             </div>
-            <div className="practice-panel">
-              <strong>Practice Categories</strong>
-              <div className="practice-grid">
-                {quizCategories.map((category) => {
-                  const count = getQuestionCount(category);
-                  return (
-                    <button
-                      className="practice-card"
-                      disabled={!count}
-                      key={category}
-                      onClick={() => startPractice(category)}
-                      type="button"
-                    >
-                      <span>{category}</span>
-                      <small>
-                        {count
-                          ? `${count} question${count === 1 ? "" : "s"}`
-                          : "No questions yet"}
-                      </small>
-                    </button>
-                  );
-                })}
+          </section>
+
+          <section aria-label="Platform statistics" className="home-stats">
+            <div className="home-stat-item">
+              <span aria-hidden="true" className="home-stat-icon blue">
+                <svg fill="none" height="20" viewBox="0 0 24 24" width="20">
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                    stroke="currentColor"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </span>
+              <div className="home-stat-text">
+                <strong>1500+ Problems</strong>
+                <span>Solve real coding problems</span>
               </div>
             </div>
+            <div className="home-stat-item">
+              <span aria-hidden="true" className="home-stat-icon green">
+                <svg fill="none" height="20" viewBox="0 0 24 24" width="20">
+                  <path
+                    d="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </span>
+              <div className="home-stat-text">
+                <strong>50+ Courses</strong>
+                <span>Structured learning paths</span>
+              </div>
+            </div>
+            <div className="home-stat-item">
+              <span aria-hidden="true" className="home-stat-icon purple">
+                <svg fill="none" height="20" viewBox="0 0 24 24" width="20">
+                  <path
+                    d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </span>
+              <div className="home-stat-text">
+                <strong>50+ Contests</strong>
+                <span>Compete and win rewards</span>
+              </div>
+            </div>
+            <div className="home-stat-item">
+              <span aria-hidden="true" className="home-stat-icon orange">
+                <svg fill="none" height="20" viewBox="0 0 24 24" width="20">
+                  <path
+                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </span>
+              <div className="home-stat-text">
+                <strong>1K+ Users</strong>
+                <span>Growing developer community</span>
+              </div>
+            </div>
+          </section>
 
-            <div className=" ">
-              <div className="witth-full flex flex-wrap">
-                <div className="practice-gride">
-                  <div className="card-container">
-                    <div>
-                      <a href="/javaproblem">
-                        <div className="card active">
-                          <img src={javaImg} alt="Java Logo" className="logo" />
-                          <h2 className="text">
-                            Java
-                            <br />1 question
-                          </h2>
-                          <h2>Java</h2>
-                          <p>1 question</p>
-                          <button className="button">open</button>
-                        </div>
-                      </a>
-                    </div>
+          <section className="home-practice-section">
+            <h2 className="home-section-title">Practice Categories</h2>
+            <div className="home-category-grid">
+              {quizCategories.map((category) => {
+                const count = getQuestionCount(category);
+                return (
+                  <button
+                    className="home-category-card"
+                    disabled={!count}
+                    key={category}
+                    onClick={() => startPractice(category)}
+                    type="button"
+                  >
+                    <span>{category}</span>
+                    <small>
+                      {count
+                        ? `${count} question${count === 1 ? "" : "s"}`
+                        : "No questions yet"}
+                    </small>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-                    <div>
-                      <a href="/quiz/cppproblem">
-                        <div className="card">
-                          <img src={cppImg} alt="C++" className="logo" />
-                          <h2 className="text">
-                            C++
-                            <br />
-                            no question yet open
-                          </h2>
-                          <button className="button">open</button>
-                          <h2>C++</h2>
-                          <p>No questions yets</p>
-                          open
-                        </div>
-                      </a>
-                    </div>
+          <section className="home-lang-section">
+            <h2 className="home-section-title">Languages</h2>
+            <div className="home-lang-grid">
+              <a className="home-lang-card" href="/javaproblem">
+                <img alt="Java Logo" className="logo" src={javaImg} />
+                <h2>Java</h2>
+                <p>1 question</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+              <a className="home-lang-card" href="/quiz/cppproblem">
+                <img alt="C++" className="logo" src={cppImg} />
+                <h2>C++</h2>
+                <p>No questions yets</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+              <a className="home-lang-card" href="/htmlproblem">
+                <img alt="HTML" className="logo" src={htmlImg} />
+                <h2>HTML</h2>
+                <p>1 question</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+              <a className="home-lang-card" href="/cssproblem">
+                <img alt="CSS" className="logo" src={cssImg} />
+                <h2>CSS</h2>
+                <p>1 question</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+              <a className="home-lang-card" href="/pythonproblem">
+                <img alt="Python" className="logo" src={pythonImg} />
+                <h2>Python</h2>
+                <p>2 questions</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+              <a className="home-lang-card" href="/javascriptproblem">
+                <img
+                  alt="JavaScript"
+                  className="logo"
+                  src={javascriptImg}
+                />
+                <h2>JavaScript</h2>
+                <p>2 questions</p>
+                <button className="button" type="button">
+                  open
+                </button>
+              </a>
+            </div>
+          </section>
 
-                    <div>
-                      <a href="/htmlproblem">
-                        <div className="card">
-                          <img src={htmlImg} alt="HTML" className="logo" />
-                          <h2 className="text">
-                            HTML
-                            <br />1 question
-                          </h2>
-                          <button className="button">open</button>
-                          <h2>HTML</h2>
-                          <p>1 question</p>
-                        </div>
-                      </a>
-                    </div>
-
-                    <div>
-                      <a href="/cssproblem">
-                        <div className="card">
-                          <img src={cssImg} alt="CSS" className="logo" />
-                          <h2 className="text">
-                            CSS
-                            <br />1 question
-                          </h2>
-                          <button className="button">open</button>
-                          <h2>CSS</h2>
-                          <p>1 question</p>
-                        </div>
-                      </a>
-                    </div>
-
-                    <div>
-                      <a href="/pythonproblem">
-                        <div className="card">
-                          <img src={pythonImg} alt="Python" className="logo" />
-                          <h2 className="text">
-                            Python
-                            <br />2 questions
-                          </h2>
-                          <button className="button">open</button>
-                        </div>
-                      </a>
-                    </div>
-                    <a href="/javascriptproblem">
-                      <div className="card">
-                        <h2>JavaScript</h2>
-                        <p>2 questions</p>
-                      </div>
-                    </a>
+          {showContestLeaderboard &&
+            isLeaderboardPublished &&
+            leaderboard.length > 0 && (
+              <section
+                aria-label="Contest leaderboard"
+                className="home-leaderboard"
+              >
+                <h2 className="home-section-title">{contestName}</h2>
+                {leaderboard.map((row, idx) => (
+                  <div className="home-leaderboard-row" key={`${row.name}-${idx}`}>
+                    <strong>
+                      #{idx + 1} {row.name}
+                    </strong>
+                    <span>
+                      {row.totalCorrect} correct |{" "}
+                      {row.avgTimePerQuestion.toFixed(2)}s avg
+                    </span>
                   </div>
-                </div>
-              </div>
-            </div>
+                ))}
+              </section>
+            )}
 
-            <div>
-              <Footer />
-            </div>
+          <div className="home-footer-wrap">
+            <Footer />
           </div>
-        </section>
-
-        {showContestLeaderboard &&
-          isLeaderboardPublished &&
-          leaderboard.length > 0 && (
-            <section className="feature-row" aria-label="Contest leaderboard">
-              <div>
-                <strong>{contestName}</strong>
-              </div>
-              {leaderboard.map((row, idx) => (
-                <div key={`${row.name}-${idx}`}>
-                  <strong>
-                    #{idx + 1} {row.name}
-                  </strong>
-                  <span>
-                    {row.totalCorrect} correct |{" "}
-                    {row.avgTimePerQuestion.toFixed(2)}s avg
-                  </span>
-                </div>
-              ))}
-            </section>
-          )}
+        </div>
       </main>
     );
   }
