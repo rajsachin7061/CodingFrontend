@@ -305,7 +305,10 @@ function Quiz({
               <div>
                 <a href="/all-courses">Course</a>
               </div>
-              <div>Practice</div>
+              <div>
+                <a href="/practice">Practice</a>
+                </div>
+                
               <div>
                 <a href="/javaproblem">Problem</a>
               </div>

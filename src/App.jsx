@@ -1259,8 +1259,8 @@ function App() {
       <Route path="/javascriptproblem" element={<Problems />} />
       <Route path="/question-details" element={currentPage} />
       <Route path="/problem/:id" element={currentPage} />
-
-      <Route path="/all-courses" element={<Courses/>} />
+      <Route path="/practice" element={dsdsdsdfd}/>
+     
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
