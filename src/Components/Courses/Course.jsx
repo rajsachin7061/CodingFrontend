@@ -1,17 +1,8 @@
 import Slider from "./practice.jsx";
 const Courses = () => {
   return (
-    <div>{Slider}</div>
+    <div>{}</div>
   );
 };
 
-
-
-
-
-
-
-
-
-
-export default Courses;
+export default Courses;  
