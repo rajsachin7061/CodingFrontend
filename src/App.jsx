@@ -7,6 +7,8 @@ import Participates from "./Components/LandingPage/Participate.jsx";
 import QuizStarts from "./Components/Quizstart.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
+import Practice from "./Components/Practice/Practices.jsx";
+import Game from "./Components/Game.jsx"
 
 import {
   Navigate,
@@ -38,6 +40,8 @@ import {
 import "./App.css";
 import Thanks from "./Components/LandingPage/Thanku.jsx";
 import Questiondetail from "./Components/Questiondetail.jsx";
+
+
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -1259,7 +1263,10 @@ function App() {
       <Route path="/javascriptproblem" element={<Problems />} />
       <Route path="/question-details" element={currentPage} />
       <Route path="/problem/:id" element={currentPage} />
-      <Route path="/practice" element={dsdsdsdfd}/>
+      <Route path="/practice" element={<Practice></Practice>}/>
+      <Route path="/game" element={<Game></Game>}/>
+      <Route path="/all-problem" element={<Problems />}/>
+    
      
 
       <Route path={pageRoutes.login} element={currentPage} />

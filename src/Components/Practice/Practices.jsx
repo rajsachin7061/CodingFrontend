@@ -1,6 +1,9 @@
 const Practice = () => {
   return (
-    <div>jkdvksnkvsksnvsnvs</div>
+  
+    <div>
+        <a href="practice">practice</a>
+      jkdvksnkvsksnvsnvs</div>
   );
 };
 
