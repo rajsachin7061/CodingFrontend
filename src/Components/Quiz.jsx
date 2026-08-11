@@ -316,10 +316,11 @@ function Quiz({
 
           <div className="home-nav-links">
             <a href="/all-courses">Course</a>
-            <span>Practice</span>
-            <a href="/problem-sheet">Problem</a>
-            <span>Game</span>
+            
+            <a href="/all-problem">Problem</a>
+            <a href="/game">Game</a>
             <a href="/compiler">Compiler</a>
+            
           </div>
 
           <div className="home-navbar-right">
@@ -544,7 +545,7 @@ function Quiz({
           </section>
 
           <section className="home-practice-section">
-            <h2 className="home-section-title">Quize Categories</h2>
+            <h2 className="home-section-title">Quiz Categories</h2>
             <div className="home-category-grid">
               {quizCategories.map((category) => {
                 const count = getQuestionCount(category);
@@ -569,7 +570,7 @@ function Quiz({
           </section>
 
           <section className="home-lang-section">
-            <h2 className="home-section-title">Practice Languages</h2>
+            <h2 className="home-section-title">Practice</h2>
             <div className="home-lang-grid">
               <a className="home-lang-card" href="/javaproblem">
                 <img alt="Java Logo" className="logo" src={javaImg} />
@@ -813,3 +814,9 @@ function Quiz({
 }
 
 export default Quiz;
+
+
+
+
+
+  
