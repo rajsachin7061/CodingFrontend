@@ -15,6 +15,7 @@ export const pageRoutes = {
   logout: "/logout",
   admin: "/admin",
   problems: "/javaproblems",
+  Practice: "/practice",
 
   compilers: "/code/compiler",
   javaproblem: "/javaproblem",
@@ -23,7 +24,7 @@ export const pageRoutes = {
   cssproblem: "/cssproblem",
   javascriptproblem: "/javascriptproblem",
   Questiondetail: "/problem/:id",
-  Course: "/all-courses",
+ 
   
 
 };
@@ -51,7 +52,7 @@ const pathToPage = {
   [pageRoutes.cssproblem]: "cssproblem",
   [pageRoutes.javascriptproblem]: "javascriptproblem",
   [pageRoutes.Questiondetail]: "Questiondetail",
-  [pageRoutes.Course]: "Course",
+  
 };
 
 export const getQuizCategoryFromPath = (pathname) => {
