@@ -1261,6 +1261,7 @@ function App() {
       <Route path="/problem/:id" element={currentPage} />
 
       <Route path="/all-courses" element={<Courses/>} />
+      
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
