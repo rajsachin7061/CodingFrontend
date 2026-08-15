@@ -9,6 +9,7 @@ import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
 import Practice from "./Components/Practice/Practices.jsx";
 import Game from "./Components/Game.jsx"
+import StartQuiz from "./Components/Quiz1.jsx";
 
 import {
   Navigate,
@@ -1266,6 +1267,7 @@ function App() {
       <Route path="/practice" element={<Practice></Practice>}/>
       <Route path="/game" element={<Game></Game>}/>
       <Route path="/all-problem" element={<Problems />}/>
+      <Route path="/quiz/start/" element = {<StartQuiz/>}/>
     
      
 

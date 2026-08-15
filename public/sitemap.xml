@@ -2,19 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <url>
-    <loc>https://codesnipers.in/</loc>
+    <loc>https://codesniper.in/</loc>
   </url>
 
   <url>
-    <loc>https://codesnipers.in/login</loc>
+    <loc>https://codesniper.in/login</loc>
   </url>
 
   <url>
-    <loc>https://codesnipers.in/contest</loc>
+    <loc>https://codesniper.in/all-problem</loc>
   </url>
 
   <url>
-    <loc>https://codesnipers.in/quiz</loc>
+    <loc>https://codesniper.in/quiz</loc>
   </url>
 
 </urlset>
