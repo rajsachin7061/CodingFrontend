@@ -18,6 +18,7 @@ export const pageRoutes = {
   Practice: "/practice",
   Game: "/game",
   Allproblem: "/all-problem",
+  StartQuiz: "/quiz/start/",
 
 
   compilers: "/code/compiler",
@@ -46,6 +47,7 @@ const pathToPage = {
   [pageRoutes.resume]: "resume",
   [pageRoutes.logout]: "logout",
   [pageRoutes.admin]: "admin",
+  [pageRoutes.StartQuiz]: "StartQuiz",
 
 
   [pageRoutes.compilers]: "compilers",

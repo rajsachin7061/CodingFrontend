@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://codesnipers.in/sitemap.xml
+Sitemap: https://codesniper.in/sitemap.xml
