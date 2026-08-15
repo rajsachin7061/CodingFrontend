@@ -605,7 +605,7 @@ function Quiz({
                 </button>
               </a>
               <a className="home-lang-card" href="/pythonproblem">
-                <img alt="Python" className="logo" src={pythonImg} />
+                <img alt="Python" className="logo" src={pythonImg}/>  
                 <h2>Python</h2>
                 <p>2 questions</p>
                 <button className="button" type="button">
