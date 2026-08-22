@@ -610,6 +610,19 @@
   width: 48px;
 }
 
+.home-language-icon {
+  align-items: center;
+  background: #e0f2fe;
+  border-radius: 14px;
+  color: #0f172a;
+  display: flex;
+  font-size: 1.5rem;
+  font-weight: 800;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
 .home-lang-card h2 {
   color: #1a1a2e;
   font-size: 1rem;
