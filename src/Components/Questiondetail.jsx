@@ -27,7 +27,7 @@ const DetailSection = ({ title, children }) => {
   );
 };
 
-const Questiondetail = ({ theme, user, problemId: providedProblemId }) => {
+const Questiondetail = ({ theme, user, problemId: providedProblemId, questionSource = "problem" }) => {
   const { id } = useParams();
   const problemId = providedProblemId || id;
   const [problem, setProblem] = useState(null);
@@ -91,7 +91,8 @@ const Questiondetail = ({ theme, user, problemId: providedProblemId }) => {
       setMessage("");
 
       try {
-        const response = await apiFetch(`/api/problems/${problemId}`);
+        const endpoint = questionSource === "practice" ? "/api/practice-question-data" : "/api/problems";
+        const response = await apiFetch(`${endpoint}/${problemId}`);
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
@@ -116,7 +117,7 @@ const Questiondetail = ({ theme, user, problemId: providedProblemId }) => {
     return () => {
       isCancelled = true;
     };
-  }, [id]);
+  }, [problemId, questionSource]);
 
   useEffect(() => {
     if (!isCustomInputOpen) {
