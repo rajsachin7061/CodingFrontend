@@ -9,7 +9,8 @@ import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
 import Practice from "./Components/Practice/Practices.jsx";
 import Game from "./Components/Game.jsx"
-import StartQuiz from "./Components/Quiz1.jsx";
+import StartQuiz from "./Components/Quiz/Quiz1.jsx"
+import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx"
 
 import {
   Navigate,
@@ -41,6 +42,7 @@ import {
 import "./App.css";
 import Thanks from "./Components/LandingPage/Thanku.jsx";
 import Questiondetail from "./Components/Questiondetail.jsx";
+import PracticeLearningPath from "./Components/PracticeLearningPath.jsx";
 
 
 
@@ -52,35 +54,12 @@ const QUESTIONS_KEY = "onlineQuizQuestions";
 const ADMIN_SESSION_KEY = "onlineQuizAdminSession";
 const THEME_KEY = "onlineQuizTheme";
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "" : "https://codingbackend-rdyv.onrender.com")
+  import.meta.env.VITE_API_BASE_URL || ""
 ).replace(/\/+$/, "");
-const API_FALLBACK_BASE_URL = "https://codingbackend-rdyv.onrender.com";
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
-const fallbackApiUrl = (path) => `${API_FALLBACK_BASE_URL}${path}`;
 
 const apiFetch = async (path, options) => {
-  const primaryUrl = apiUrl(path);
-  const response = await fetch(primaryUrl, options);
-
-  if (response.status !== 404) {
-    return response;
-  }
-
-  let isSameOrigin = false;
-
-  try {
-    const resolvedPrimaryUrl = new URL(primaryUrl, window.location.origin);
-    isSameOrigin = resolvedPrimaryUrl.origin === window.location.origin;
-  } catch {
-    isSameOrigin = primaryUrl.startsWith("/");
-  }
-
-  if (!isSameOrigin) {
-    return response;
-  }
-
-  return fetch(fallbackApiUrl(path), options);
+  return fetch(apiUrl(path), options);
 };
 
 const makeUsername = (name = "", email = "") => {
@@ -1264,10 +1243,16 @@ function App() {
       <Route path="/javascriptproblem" element={<Problems />} />
       <Route path="/question-details" element={currentPage} />
       <Route path="/problem/:id" element={currentPage} />
+
+      <Route path="/practice/:languageSlug" element={<PracticeLearningPath />} />
+      <Route path="/practice/:languageSlug/modules/:moduleId" element={<PracticeLearningPath />} />
+      <Route path="/practice-question/:id" element={<Questiondetail questionSource="practice" theme={theme} user={currentUser} />} />
+      
       <Route path="/practice" element={<Practice></Practice>}/>
       <Route path="/game" element={<Game></Game>}/>
       <Route path="/all-problem" element={<Problems />}/>
       <Route path="/quiz/start/" element = {<StartQuiz/>}/>
+      <Route path="/startquiz" element={<StartQuiz1/>}/>
     
      
 

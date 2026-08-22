@@ -1770,13 +1770,13 @@
 .header {
   display: flex;
   row-gap: 10px;
-  margin:
+  margin: 0;
 }
 
 .problems-shell {
   background: #f4f7fb;
   color: #172033;
-  min-height: 100vh;
+  min-height: 100%;
   padding: 28px;
 }
 
@@ -1837,9 +1837,9 @@
 
 .problem-list {
   display: grid;
-  gap: 14px;
+  gap: 5px;
   margin: 0 auto;
-  max-width: 1180px;
+  max-width: 100%;
 }
 
 .problem-list-card {
@@ -1849,9 +1849,9 @@
   border-radius: 8px;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
   display: flex;
-  gap: 18px;
+  gap: 100px;
   justify-content: space-between;
-  padding: 18px;
+  padding: 8px;
 }
 
 .problem-card-meta,

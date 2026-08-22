@@ -8,13 +8,8 @@ import Slider from "./LandingPage/Slider";
 import questions from "./Question";
 import { pageRoutes } from "../pageRoutes";
 import QuestionBox from "./questionBox";
+import { apiFetch } from "../api";
 
-import javaImg from "./LandingPage/imaiges/java.png";
-import cppImg from "./LandingPage/imaiges/c++.png";
-import javascriptImg from "./LandingPage/imaiges/javascript.png";
-import cssImg from "./LandingPage/imaiges/css.png";
-import pythonImg from "./LandingPage/imaiges/python.png";
-import htmlImg from "./LandingPage/imaiges/html.png";
 import logoImg from "./LandingPage/imaiges/logo.png";
 import heroImg from "./LandingPage/imaiges/landingImaige.png";
 import "./home.css";
@@ -38,6 +33,8 @@ const formatLongCountdown = (totalSeconds) => {
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
+
+const isImageUrl = (value = "") => /^(https?:\/\/|\/|data:image\/)/i.test(value);
 
 function Quiz({
   contestSettings,
@@ -66,6 +63,8 @@ function Quiz({
   const [contestElapsedSeconds, setContestElapsedSeconds] = useState(0);
   const [showContestLeaderboard, setShowContestLeaderboard] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
+  const [learningPaths, setLearningPaths] = useState([]);
+  const [learningPathsState, setLearningPathsState] = useState("loading");
 
   const selectedCategory = routeCategory || localCategory;
   const isContest = selectedCategory === CONTEST_CATEGORY;
@@ -157,6 +156,31 @@ function Quiz({
       setNowTs(Date.now());
     }, 1000);
     return () => window.clearInterval(timerId);
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadLearningPaths = async () => {
+      setLearningPathsState("loading");
+      try {
+        const response = await apiFetch("/api/practice/languages");
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || "Could not load learning paths.");
+        if (!isCancelled) {
+          setLearningPaths(Array.isArray(payload.items) ? payload.items : []);
+          setLearningPathsState("ready");
+        }
+      } catch {
+        if (!isCancelled) {
+          setLearningPaths([]);
+          setLearningPathsState("error");
+        }
+      }
+    };
+
+    loadLearningPaths();
+    return () => { isCancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -572,59 +596,27 @@ function Quiz({
           <section className="home-lang-section">
             <h2 className="home-section-title">Practice</h2>
             <div className="home-lang-grid">
-              <a className="home-lang-card" href="/javaproblem">
-                <img alt="Java Logo" className="logo" src={javaImg} />
-                <h2>Java</h2>
-                <p>1 question</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
-              <a className="home-lang-card" href="/quiz/cppproblem">
-                <img alt="C++" className="logo" src={cppImg} />
-                <h2>C++</h2>
-                <p>No questions yets</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
-              <a className="home-lang-card" href="/htmlproblem">
-                <img alt="HTML" className="logo" src={htmlImg} />
-                <h2>HTML</h2>
-                <p>1 question</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
-              <a className="home-lang-card" href="/cssproblem">
-                <img alt="CSS" className="logo" src={cssImg} />
-                <h2>CSS</h2>
-                <p>1 question</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
-              <a className="home-lang-card" href="/pythonproblem">
-                <img alt="Python" className="logo" src={pythonImg}/>  
-                <h2>Python</h2>
-                <p>2 questions</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
-              <a className="home-lang-card" href="/javascriptproblem">
-                <img
-                  alt="JavaScript"
-                  className="logo"
-                  src={javascriptImg}
-                />
-                <h2>JavaScript</h2>
-                <p>2 questions</p>
-                <button className="button" type="button">
-                  open
-                </button>
-              </a>
+              {learningPaths.map((language) => {
+                const count = language.questionCount || 0;
+                const icon = language.icon || language.name.slice(0, 2).toUpperCase();
+                return (
+                  <Link
+                    aria-label={`Open ${language.name} learning path`}
+                    className="home-lang-card"
+                    key={language.id}
+                    to={`/practice/${encodeURIComponent(language.slug)}`}
+                  >
+                    {isImageUrl(icon) ? <img alt="" className="logo" src={icon} /> : <span className="home-language-icon">{icon}</span>}
+                    <h2>{language.name}</h2>
+                    <p>{count ? `${count} question${count === 1 ? "" : "s"}` : "No questions yet"}</p>
+                    <span className="button">Open</span>
+                  </Link>
+                );
+              })}
             </div>
+            {learningPathsState === "loading" && <p className="home-empty-state">Loading practice...</p>}
+            {learningPathsState === "error" && <p className="home-empty-state">Unable to load practice questions. Please refresh and try again.</p>}
+            {learningPathsState === "ready" && !learningPaths.length && <p className="home-empty-state">No learning paths have been published yet.</p>}
           </section>
 
           {showContestLeaderboard &&
