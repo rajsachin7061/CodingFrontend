@@ -7,6 +7,7 @@ import Participates from "./Components/LandingPage/Participate.jsx";
 import QuizStarts from "./Components/Quizstart.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
+import Game from "./Components/Game.jsx";
 
 import {
   Navigate,
@@ -1275,6 +1276,7 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
+      <Route path={pageRoutes.Game} element={currentpage} />
       <Route
         path="*"
         element={

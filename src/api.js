@@ -31,3 +31,4 @@ export const apiFetch = async (path, options) => {
 
   return fetch(fallbackApiUrl(path), options);
 };
+

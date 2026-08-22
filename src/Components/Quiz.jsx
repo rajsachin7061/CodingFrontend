@@ -318,8 +318,8 @@ function Quiz({
             <a href="/all-courses">Course</a>
             <span>Practice</span>
             <a href="/problem-sheet">Problem</a>
-            <span>Game</span>
-            <a href="/compiler">Compiler</a>
+            <a href="/Game">Game</a>
+            <a href="/compiler">Compiler</a> 
           </div>
 
           <div className="home-navbar-right">
