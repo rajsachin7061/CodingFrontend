@@ -80,7 +80,9 @@ const Page = ({ onLogin, onSignup }) => {
             <li onClick={closeMenu}>Course</li>
             <li onClick={closeMenu}>Practice</li>
             <li onClick={closeMenu}>Problem</li>
-            <li onClick={closeMenu}>Game</li>
+            <li onClick={closeMenu}>
+              <a href="/all-game">Game</a>
+              </li>
 
             <Link to={pageRoutes.compiler} onClick={closeMenu}>
               <li>Compiler</li>

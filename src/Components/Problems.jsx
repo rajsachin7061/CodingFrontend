@@ -4,12 +4,12 @@ import { Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 
 const problemCategories = {
+  "/all-problem": "",
   "/javaproblem": "Java",
   "/cppproblem": "C++",
   "/quiz/cppproblem": "C++",
   "/htmlproblem": "HTML",
   "/cssproblem": "CSS",
-
   "/javascriptproblem": "JavaScript",
 };
 

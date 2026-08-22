@@ -15,6 +15,11 @@ export const pageRoutes = {
   logout: "/logout",
   admin: "/admin",
   problems: "/javaproblems",
+  Practice: "/practice",
+  Game: "/game",
+  Allproblem: "/all-problem",
+  StartQuiz: "/quiz/start/",
+
 
   compilers: "/code/compiler",
   javaproblem: "/javaproblem",
@@ -25,6 +30,7 @@ export const pageRoutes = {
   Questiondetail: "/problem/:id",
   Course: "/all-courses",
   Game:"/Game"
+ 
   
 
 };
@@ -43,6 +49,7 @@ const pathToPage = {
   [pageRoutes.resume]: "resume",
   [pageRoutes.logout]: "logout",
   [pageRoutes.admin]: "admin",
+  [pageRoutes.StartQuiz]: "StartQuiz",
 
 
   [pageRoutes.compilers]: "compilers",
@@ -52,7 +59,10 @@ const pathToPage = {
   [pageRoutes.cssproblem]: "cssproblem",
   [pageRoutes.javascriptproblem]: "javascriptproblem",
   [pageRoutes.Questiondetail]: "Questiondetail",
-  [pageRoutes.Course]: "Course",
+  [pageRoutes.Practice]: "Practice",
+  [pageRoutes.Game]: "Game",
+  [pageRoutes.Allproblem]: "Allproblem",
+  
   [pageRoutes.game]: "Game",
 };
 
