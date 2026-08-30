@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   languagesApi,
   modulesApi,
+  problemSheetApi,
   practiceQuestionsApi,
   problemsApi,
 } from "../api/adminApi";
@@ -63,6 +64,8 @@ export default function ProblemManagementDashboard() {
   const [moduleCreateProblemModal, setModuleCreateProblemModal] =
     useState(false);
   const [questionDeleteTarget, setQuestionDeleteTarget] = useState(null);
+  const [problemSheetItems, setProblemSheetItems] = useState([]);
+  const [problemSheetLoading, setProblemSheetLoading] = useState(false);
 
   const selectedLanguage = languages.find(
     (item) => item.id === selectedLanguageId,
@@ -141,6 +144,18 @@ export default function ProblemManagementDashboard() {
     }
   };
 
+  const loadProblemSheet = async () => {
+    setProblemSheetLoading(true);
+    try {
+      const payload = await problemSheetApi.get();
+      setProblemSheetItems(payload.items || []);
+    } catch (error) {
+      setMessage(error?.message || "Could not load problem sheet.");
+    } finally {
+      setProblemSheetLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadProblems();
   }, [problemParams]);
@@ -156,6 +171,10 @@ export default function ProblemManagementDashboard() {
   useEffect(() => {
     loadPracticeQuestions(selectedModuleId);
   }, [selectedModuleId]);
+
+  useEffect(() => {
+    loadProblemSheet();
+  }, []);
 
   const saveProblem = async (payload, { addToModule = false } = {}) => {
     const saved = problemModal.problem
@@ -229,6 +248,21 @@ export default function ProblemManagementDashboard() {
   };
 
   const addExistingProblem = async (problemOrProblems) => {
+    if (activeSection === "problemSheet") {
+      const selectedProblems = Array.isArray(problemOrProblems)
+        ? problemOrProblems
+        : [problemOrProblems];
+      setProblemSheetItems((current) => [
+        ...current,
+        ...selectedProblems.filter(
+          (problem) => !current.some((item) => item.id === problem.id),
+        ),
+      ]);
+      setAddProblemModal(false);
+      setMessage("Problems added to sheet. Save the sheet to publish changes.");
+      return;
+    }
+
     if (!selectedModuleId) return;
     const selectedProblems = Array.isArray(problemOrProblems)
       ? problemOrProblems
@@ -275,6 +309,14 @@ export default function ProblemManagementDashboard() {
 
   const updateProblemFilter = (field, value) => {
     setProblemFilters((current) => ({ ...current, [field]: value, page: 1 }));
+  };
+
+  const saveProblemSheet = async () => {
+    const payload = await problemSheetApi.save(
+      problemSheetItems.map((problem) => problem.id),
+    );
+    setProblemSheetItems(payload.items || problemSheetItems);
+    setMessage(payload.message || "Problem sheet saved.");
   };
 
   return (
@@ -350,6 +392,19 @@ export default function ProblemManagementDashboard() {
               }
               problemsState={problemsState}
               view={problemView}
+            />
+          ) : activeSection === "problemSheet" ? (
+            <ProblemSheetSection
+              items={problemSheetItems}
+              loading={problemSheetLoading}
+              onAdd={() => setAddProblemModal(true)}
+              onRemove={(problem) =>
+                setProblemSheetItems((current) =>
+                  current.filter((item) => item.id !== problem.id),
+                )
+              }
+              onReorder={setProblemSheetItems}
+              onSave={saveProblemSheet}
             />
           ) : (
             <PracticeSection
@@ -512,6 +567,13 @@ function AdminSidebar({
       <nav className="grid gap-5">
         <button className={itemClass(false)} type="button">
           <span>Dashboard</span>
+        </button>
+        <button
+          className={itemClass(activeSection === "problemSheet")}
+          onClick={() => setActiveSection("problemSheet")}
+          type="button"
+        >
+          <span>Problem Sheet</span>
         </button>
         <SidebarGroup title="CONTENT">
           <button
@@ -811,6 +873,75 @@ function ProblemRow({ onDelete, onEdit, problem }) {
           Delete
         </button>
       </div>
+    </div>
+  );
+}
+
+function ProblemSheetSection({
+  items,
+  loading,
+  onAdd,
+  onRemove,
+  onReorder,
+  onSave,
+}) {
+  return (
+    <div className="grid gap-5">
+      <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-950">Problem Sheet</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Select existing problems to display at /problem-sheet.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            onClick={onAdd}
+            type="button"
+          >
+            Select Existing Problems
+          </button>
+          <button
+            className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
+            disabled={loading}
+            onClick={onSave}
+            type="button"
+          >
+            Save Problem Sheet
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <EmptyCard text="Loading problem sheet..." />
+      ) : items.length ? (
+        <DragReorderList
+          items={items}
+          onReorder={onReorder}
+          renderItem={(problem, index) => (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="font-bold text-slate-950">
+                  {index + 1}. {problem.title}
+                </div>
+                <div className="text-xs text-slate-500">/{problem.slug}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <DifficultyBadge difficulty={problem.difficulty} />
+                <button
+                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  onClick={() => onRemove(problem)}
+                  type="button"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          )}
+        />
+      ) : (
+        <EmptyCard text="No problems selected. Add existing problems to build the sheet." />
+      )}
     </div>
   );
 }

@@ -15,10 +15,18 @@ export const pageRoutes = {
   logout: "/logout",
   admin: "/admin",
   problems: "/javaproblems",
-  Game: "/game",
   Allproblem: "/all-problem",
   StartQuiz: "/quiz/start/",
   QuizStart: "/startquiz",
+  Game: "/Game",
+  problemsheet: "/problem-sheet",
+    About:"/aboutus/codesnipers/",
+
+
+
+
+
+
 
   //practice pageroutes
   Practice: "/practice",
@@ -85,8 +93,11 @@ const pathToPage = {
   [pageRoutes.javascriptproblem]: "javascriptproblem",
   [pageRoutes.Questiondetail]: "Questiondetail",
   [pageRoutes.PracticeQuestion]: "PracticeQuestion",
-  
   [pageRoutes.Game]: "Game",
+  [pageRoutes.problemsheet]: "problemsheet",
+  [pageRoutes.About]: "About",
+  
+ 
   [pageRoutes.Allproblem]: "Allproblem",
 
   

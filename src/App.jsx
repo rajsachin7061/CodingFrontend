@@ -8,9 +8,10 @@ import QuizStarts from "./Components/Quizstart.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
 import Practice from "./Components/Practice/Practices.jsx";
-import Game from "./Components/Game.jsx"
-import StartQuiz from "./Components/Quiz/Quiz1.jsx"
-import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx"
+import StartQuiz from "./Components/Quiz/Quiz1.jsx";
+import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx";
+import Game from "./Components/Game.jsx";
+import Problemsheet from "./Components/Problemsheet.jsx";
 
 import {
   Navigate,
@@ -1249,10 +1250,11 @@ function App() {
       <Route path="/practice-question/:id" element={<Questiondetail questionSource="practice" theme={theme} user={currentUser} />} />
       
       <Route path="/practice" element={<Practice></Practice>}/>
-      <Route path="/game" element={<Game></Game>}/>
       <Route path="/all-problem" element={<Problems />}/>
       <Route path="/quiz/start/" element = {<StartQuiz/>}/>
       <Route path="/startquiz" element={<StartQuiz1/>}/>
+      <Route path="/Game" element={<Game/>}/>
+      <Route path="/problem-sheet" element={<Problemsheet/>}/>
     
      
 
@@ -1268,6 +1270,7 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
+ 
       <Route
         path="*"
         element={

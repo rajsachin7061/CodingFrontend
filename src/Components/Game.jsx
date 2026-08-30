@@ -1,10 +1,6 @@
-
-const Game = () => {
- 
-
-  return (
-    <div className="px-30 py-30">Here is the game setion</div>
+const Game =()=>{
+  return(
+    <div>game is start</div>
   );
-};
-
+}  
 export default Game;
