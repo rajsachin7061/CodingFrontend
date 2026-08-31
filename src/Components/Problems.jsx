@@ -2,6 +2,7 @@ import "./problems.css";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
+import Footer from "./LandingPage/Footer.jsx";
 
 const problemCategories = {
   "/all-problem": "",
@@ -188,6 +189,7 @@ const Problems = () => {
           </button>
         </div>
       )}
+     <div><Footer></Footer></div>
     </main>
   );
 };

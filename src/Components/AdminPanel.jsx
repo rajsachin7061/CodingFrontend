@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ProblemManagement from "./ProblemManagement";
 import quizCategories, { defaultQuizCategory } from "./QuizCategories";
+import { problemsApi } from "../features/admin/api/adminApi";
 
 const emptyQuestion = {
   category: defaultQuizCategory,
@@ -24,6 +25,7 @@ const toDateTimeLocal = (iso) => {
 function AdminPanel({
   backLabel = "Quiz",
   contestSettings,
+  quizSettings,
   theme,
   users,
   questions,
@@ -35,6 +37,7 @@ function AdminPanel({
   onToggleTheme,
   onToggleUserBlock,
   onUpdateContestSettings,
+  onUpdateQuizSettings,
   onUpdateQuestion,
   onUpdateUser,
 }) {
@@ -47,7 +50,11 @@ function AdminPanel({
   const [questionDrafts, setQuestionDrafts] = useState({});
   const [showContestPreview, setShowContestPreview] = useState(false);
   const [showLeaderboardVerify, setShowLeaderboardVerify] = useState(false);
-  const [leaderboardVerifyChecked, setLeaderboardVerifyChecked] = useState(false);
+  const [leaderboardVerifyChecked, setLeaderboardVerifyChecked] =
+    useState(false);
+  const [contestProblems, setContestProblems] = useState([]);
+  const [contestProblemsLoading, setContestProblemsLoading] = useState(false);
+  const [contestProblemsError, setContestProblemsError] = useState("");
   const [settingsDraft, setSettingsDraft] = useState({
     contestName: "Weekly Contest",
     contestQuestionCount: 10,
@@ -58,6 +65,13 @@ function AdminPanel({
     selectedQuestionIds: [],
     showLeaderboardToUsers: false,
   });
+  const [quizDraft, setQuizDraft] = useState({
+    quizName: "Practice Quiz",
+    quizQuestionCount: 10,
+    quizDurationSeconds: 600,
+    selectedQuizQuestionIds: [],
+  });
+  const [addingQuizQuestion, setAddingQuizQuestion] = useState(false);
 
   useEffect(() => {
     setSettingsDraft({
@@ -75,18 +89,65 @@ function AdminPanel({
     setLeaderboardVerifyChecked(false);
   }, [contestSettings]);
 
+  useEffect(() => {
+    setQuizDraft({
+      quizName: quizSettings?.quizName || "Practice Quiz",
+      quizQuestionCount: quizSettings?.quizQuestionCount || 10,
+      quizDurationSeconds: quizSettings?.quizDurationSeconds || 600,
+      selectedQuizQuestionIds: quizSettings?.selectedQuizQuestionIds || [],
+    });
+  }, [quizSettings]);
+
+  useEffect(() => {
+    if (activeView !== "contest") {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    setContestProblemsLoading(true);
+    setContestProblemsError("");
+
+    problemsApi
+      .list({ limit: 100, status: "published" })
+      .then((payload) => {
+        if (!isCancelled) {
+          setContestProblems(payload.items || []);
+        }
+      })
+      .catch((error) => {
+        if (!isCancelled) {
+          setContestProblemsError(
+            error?.message || "Could not load contest problems.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setContestProblemsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeView]);
+
   const leaderboard = useMemo(
     () =>
       users
         .map((user) => {
           const contestStats =
-            user.stats?.contestByName?.[(settingsDraft.contestName || "Weekly Contest").trim()] ||
+            user.stats?.contestByName?.[
+              (settingsDraft.contestName || "Weekly Contest").trim()
+            ] ||
             user.stats?.contest ||
             {};
           const totalQuestions = contestStats.totalQuestions || 0;
           const totalCorrect = contestStats.totalCorrect || 0;
           const totalTimeSeconds = contestStats.totalTimeSeconds || 0;
-          const avgTimePerQuestion = totalQuestions ? totalTimeSeconds / totalQuestions : Number.POSITIVE_INFINITY;
+          const avgTimePerQuestion = totalQuestions
+            ? totalTimeSeconds / totalQuestions
+            : Number.POSITIVE_INFINITY;
 
           return {
             email: user.email,
@@ -269,12 +330,16 @@ function AdminPanel({
   const handleAddQuestion = async (event) => {
     event.preventDefault();
     const question = draft.question.trim();
-    const options = draft.options.map((option) => option.trim()).filter(Boolean);
+    const options = draft.options
+      .map((option) => option.trim())
+      .filter(Boolean);
     const answer = draft.answer.trim();
     const category = draft.category;
 
     if (!question || options.length < 2 || !answer) {
-      showError("Add a question, at least two options, and the correct answer.");
+      showError(
+        "Add a question, at least two options, and the correct answer.",
+      );
       return;
     }
 
@@ -284,7 +349,31 @@ function AdminPanel({
     }
 
     try {
-      await onAddQuestion({ ...draft, category, question, options, answer });
+      const createdQuestion = await onAddQuestion({
+        ...draft,
+        category,
+        question,
+        options,
+        answer,
+      });
+      if (addingQuizQuestion && createdQuestion?.id) {
+        const selectedIds = [
+          ...quizDraft.selectedQuizQuestionIds,
+          createdQuestion.id,
+        ].filter((id, index, list) => list.indexOf(id) === index);
+        setQuizDraft((current) => ({
+          ...current,
+          selectedQuizQuestionIds: selectedIds,
+        }));
+        await onUpdateQuizSettings({
+          quizName: quizDraft.quizName,
+          quizQuestionCount: Number(quizDraft.quizQuestionCount),
+          quizDurationSeconds: Number(quizDraft.quizDurationSeconds),
+          selectedQuizQuestionIds: selectedIds,
+        });
+        setAddingQuizQuestion(false);
+        setActiveView("quiz");
+      }
       setDraft(emptyQuestion);
       showSuccess(`${category} question added successfully.`);
     } catch (error) {
@@ -297,12 +386,17 @@ function AdminPanel({
 
     try {
       await onUpdateContestSettings({
-        contestName: (settingsDraft.contestName || "").trim() || "Weekly Contest",
+        contestName:
+          (settingsDraft.contestName || "").trim() || "Weekly Contest",
         contestQuestionCount: Number(settingsDraft.contestQuestionCount),
         contestDurationSeconds: Number(settingsDraft.contestDurationSeconds),
         isScheduled: Boolean(settingsDraft.isScheduled),
-        startAt: settingsDraft.startAt ? new Date(settingsDraft.startAt).toISOString() : null,
-        endAt: settingsDraft.endAt ? new Date(settingsDraft.endAt).toISOString() : null,
+        startAt: settingsDraft.startAt
+          ? new Date(settingsDraft.startAt).toISOString()
+          : null,
+        endAt: settingsDraft.endAt
+          ? new Date(settingsDraft.endAt).toISOString()
+          : null,
         selectedQuestionIds: settingsDraft.selectedQuestionIds,
         showLeaderboardToUsers: Boolean(settingsDraft.showLeaderboardToUsers),
       });
@@ -312,15 +406,43 @@ function AdminPanel({
     }
   };
 
+  const saveQuizSettings = async (event) => {
+    event.preventDefault();
+    try {
+      await onUpdateQuizSettings({
+        quizName: (quizDraft.quizName || "").trim() || "Practice Quiz",
+        quizQuestionCount: Number(quizDraft.quizQuestionCount),
+        quizDurationSeconds: Number(quizDraft.quizDurationSeconds),
+        selectedQuizQuestionIds: quizDraft.selectedQuizQuestionIds,
+      });
+      showSuccess("Quiz settings saved.");
+    } catch (error) {
+      showError(error?.message || "Could not save quiz settings.");
+    }
+  };
+
+  const toggleQuizQuestionSelection = (questionId, checked) => {
+    setQuizDraft((current) => ({
+      ...current,
+      selectedQuizQuestionIds: checked
+        ? [...current.selectedQuizQuestionIds, questionId].filter(
+            (id, index, list) => list.indexOf(id) === index,
+          )
+        : current.selectedQuizQuestionIds.filter((id) => id !== questionId),
+    }));
+  };
+
   const selectedQuestionsPreview = settingsDraft.selectedQuestionIds
-    .map((questionId) => questions.find((item) => item.id === questionId))
+    .map((questionId) => contestProblems.find((item) => item.id === questionId))
     .filter(Boolean);
 
   const toggleContestQuestionSelection = (questionId, checked) => {
     setSettingsDraft((current) => {
       const currentIds = current.selectedQuestionIds || [];
       const nextIds = checked
-        ? [...currentIds, questionId].filter((id, index, list) => list.indexOf(id) === index)
+        ? [...currentIds, questionId].filter(
+            (id, index, list) => list.indexOf(id) === index,
+          )
         : currentIds.filter((id) => id !== questionId);
 
       return { ...current, selectedQuestionIds: nextIds };
@@ -349,10 +471,18 @@ function AdminPanel({
       <header className="user-bar" aria-label="Admin navigation">
         <span>Admin Panel</span>
         <div className="user-actions">
-          <button className="secondary-action" onClick={onToggleTheme} type="button">
+          <button
+            className="secondary-action"
+            onClick={onToggleTheme}
+            type="button"
+          >
             {theme === "dark" ? "Light Mode" : "Dark Mode"}
           </button>
-          <button className="secondary-action" onClick={onBackToQuiz} type="button">
+          <button
+            className="secondary-action"
+            onClick={onBackToQuiz}
+            type="button"
+          >
             {backLabel}
           </button>
           <button className="secondary-action" onClick={onLogout} type="button">
@@ -376,10 +506,20 @@ function AdminPanel({
         </div>
 
         <div className="admin-tabs" aria-label="Admin views">
-          {["users", "questions", "add", "problems", "contest", "leaderboard"].map((view) => (
+          {[
+            "users",
+            "questions",
+            "add",
+            "problems",
+            "contest",
+            "quiz",
+            "leaderboard",
+          ].map((view) => (
             <button
               key={view}
-              className={activeView === view ? "tab-action active" : "tab-action"}
+              className={
+                activeView === view ? "tab-action active" : "tab-action"
+              }
               onClick={() => setActiveView(view)}
               type="button"
             >
@@ -388,6 +528,7 @@ function AdminPanel({
               {view === "add" && "Add Question"}
               {view === "problems" && "Problem Management"}
               {view === "contest" && "Contest Settings"}
+              {view === "quiz" && "Quiz Settings"}
               {view === "leaderboard" && "LeaderBoard"}
             </button>
           ))}
@@ -408,7 +549,11 @@ function AdminPanel({
                         <span>{user.email}</span>
                         {!isEditing && <span>Password: {user.password}</span>}
                       </div>
-                      <span className={user.blocked ? "status blocked" : "status active"}>
+                      <span
+                        className={
+                          user.blocked ? "status blocked" : "status active"
+                        }
+                      >
                         {user.blocked ? "Blocked" : "Active"}
                       </span>
                     </div>
@@ -417,25 +562,67 @@ function AdminPanel({
                         <div className="user-edit-fields">
                           <label>
                             Name
-                            <input value={userDraft.name} onChange={(event) => updateUserDraft(user.email, "name", event.target.value)} />
+                            <input
+                              value={userDraft.name}
+                              onChange={(event) =>
+                                updateUserDraft(
+                                  user.email,
+                                  "name",
+                                  event.target.value,
+                                )
+                              }
+                            />
                           </label>
                           <label>
                             Password
-                            <input value={userDraft.password} onChange={(event) => updateUserDraft(user.email, "password", event.target.value)} />
+                            <input
+                              value={userDraft.password}
+                              onChange={(event) =>
+                                updateUserDraft(
+                                  user.email,
+                                  "password",
+                                  event.target.value,
+                                )
+                              }
+                            />
                           </label>
                         </div>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" type="submit">Save</button>
-                          <button className="secondary-action" onClick={() => cancelEditingUser(user.email)} type="button">Cancel</button>
+                          <button className="secondary-action" type="submit">
+                            Save
+                          </button>
+                          <button
+                            className="secondary-action"
+                            onClick={() => cancelEditingUser(user.email)}
+                            type="button"
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </form>
                     ) : (
                       <div className="user-edit-actions">
-                        <button className="secondary-action" onClick={() => startEditingUser(user)} type="button">Edit</button>
-                        <button className="secondary-action" onClick={() => onToggleUserBlock(user.email)} type="button">
+                        <button
+                          className="secondary-action"
+                          onClick={() => startEditingUser(user)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="secondary-action"
+                          onClick={() => onToggleUserBlock(user.email)}
+                          type="button"
+                        >
                           {user.blocked ? "Unblock" : "Block"}
                         </button>
-                        <button className="danger-action" onClick={() => onDeleteUser(user.email)} type="button">Delete</button>
+                        <button
+                          className="danger-action"
+                          onClick={() => onDeleteUser(user.email)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
                       </div>
                     )}
                   </article>
@@ -453,19 +640,44 @@ function AdminPanel({
                 const isEditing = editingQuestion === question.id;
                 const questionDraft = getQuestionDraft(question);
                 return (
-                  <article className="admin-row user-edit-row question-row" key={question.id || question.question}>
+                  <article
+                    className="admin-row user-edit-row question-row"
+                    key={question.id || question.question}
+                  >
                     {isEditing ? (
                       <form onSubmit={(event) => saveQuestion(event, question)}>
                         <div className="user-edit-fields">
                           <label>
                             Category
-                            <select value={questionDraft.category} onChange={(event) => updateQuestionDraft(question.id, "category", event.target.value)}>
-                              {quizCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+                            <select
+                              value={questionDraft.category}
+                              onChange={(event) =>
+                                updateQuestionDraft(
+                                  question.id,
+                                  "category",
+                                  event.target.value,
+                                )
+                              }
+                            >
+                              {quizCategories.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
                             </select>
                           </label>
                           <label>
                             Section
-                            <select value={questionDraft.section} onChange={(event) => updateQuestionDraft(question.id, "section", event.target.value)}>
+                            <select
+                              value={questionDraft.section}
+                              onChange={(event) =>
+                                updateQuestionDraft(
+                                  question.id,
+                                  "section",
+                                  event.target.value,
+                                )
+                              }
+                            >
                               <option value="quiz">Quiz only</option>
                               <option value="contest">Contest only</option>
                               <option value="both">Quiz + Contest</option>
@@ -474,7 +686,16 @@ function AdminPanel({
                         </div>
                         <label>
                           Question
-                          <input value={questionDraft.question} onChange={(event) => updateQuestionDraft(question.id, "question", event.target.value)} />
+                          <input
+                            value={questionDraft.question}
+                            onChange={(event) =>
+                              updateQuestionDraft(
+                                question.id,
+                                "question",
+                                event.target.value,
+                              )
+                            }
+                          />
                         </label>
                         <div className="option-editor">
                           {questionDraft.options.map((option, index) => (
@@ -485,7 +706,11 @@ function AdminPanel({
                                 onChange={(event) => {
                                   const next = [...questionDraft.options];
                                   next[index] = event.target.value;
-                                  updateQuestionDraft(question.id, "options", next);
+                                  updateQuestionDraft(
+                                    question.id,
+                                    "options",
+                                    next,
+                                  );
                                 }}
                               />
                             </label>
@@ -493,27 +718,65 @@ function AdminPanel({
                         </div>
                         <label>
                           Correct answer
-                          <select value={questionDraft.answer} onChange={(event) => updateQuestionDraft(question.id, "answer", event.target.value)}>
+                          <select
+                            value={questionDraft.answer}
+                            onChange={(event) =>
+                              updateQuestionDraft(
+                                question.id,
+                                "answer",
+                                event.target.value,
+                              )
+                            }
+                          >
                             <option value="">Choose answer</option>
-                            {questionDraft.options.map((item) => item.trim()).filter(Boolean).map((item) => (
-                              <option key={item} value={item}>{item}</option>
-                            ))}
+                            {questionDraft.options
+                              .map((item) => item.trim())
+                              .filter(Boolean)
+                              .map((item) => (
+                                <option key={item} value={item}>
+                                  {item}
+                                </option>
+                              ))}
                           </select>
                         </label>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" type="submit">Save</button>
-                          <button className="secondary-action" onClick={() => cancelEditingQuestion(question.id)} type="button">Cancel</button>
+                          <button className="secondary-action" type="submit">
+                            Save
+                          </button>
+                          <button
+                            className="secondary-action"
+                            onClick={() => cancelEditingQuestion(question.id)}
+                            type="button"
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </form>
                     ) : (
                       <>
                         <div>
                           <strong>{question.question}</strong>
-                          <span>{question.category} | {question.section || "both"} | Answer: {question.answer}</span>
+                          <span>
+                            {question.category} | {question.section || "both"} |
+                            Answer: {question.answer}
+                          </span>
                         </div>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" onClick={() => startEditingQuestion(question)} type="button">Edit</button>
-                          <button className="danger-action" disabled={questions.length <= 1} onClick={() => onDeleteQuestion(question.id)} type="button">Delete</button>
+                          <button
+                            className="secondary-action"
+                            onClick={() => startEditingQuestion(question)}
+                            type="button"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="danger-action"
+                            disabled={questions.length <= 1}
+                            onClick={() => onDeleteQuestion(question.id)}
+                            type="button"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </>
                     )}
@@ -528,13 +791,33 @@ function AdminPanel({
           <form className="admin-form" onSubmit={handleAddQuestion}>
             <label>
               Category
-              <select value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}>
-                {quizCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+              <select
+                value={draft.category}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    category: event.target.value,
+                  }))
+                }
+              >
+                {quizCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
               Section
-              <select value={draft.section} onChange={(event) => setDraft((current) => ({ ...current, section: event.target.value }))}>
+              <select
+                value={draft.section}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    section: event.target.value,
+                  }))
+                }
+              >
                 <option value="quiz">Quiz only</option>
                 <option value="contest">Contest only</option>
                 <option value="both">Quiz + Contest</option>
@@ -542,7 +825,15 @@ function AdminPanel({
             </label>
             <label>
               Question
-              <input value={draft.question} onChange={(event) => setDraft((current) => ({ ...current, question: event.target.value }))} />
+              <input
+                value={draft.question}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    question: event.target.value,
+                  }))
+                }
+              />
             </label>
             <div className="option-editor">
               {draft.options.map((option, index) => (
@@ -561,15 +852,30 @@ function AdminPanel({
             </div>
             <label>
               Correct answer
-              <select value={draft.answer} onChange={(event) => setDraft((current) => ({ ...current, answer: event.target.value }))}>
+              <select
+                value={draft.answer}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    answer: event.target.value,
+                  }))
+                }
+              >
                 <option value="">Choose answer</option>
-                {draft.options.map((item) => item.trim()).filter(Boolean).map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
+                {draft.options
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+                  .map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
               </select>
             </label>
             {statusMessage}
-            <button className="primary-action" type="submit">Add Question</button>
+            <button className="primary-action" type="submit">
+              Add Question
+            </button>
           </form>
         )}
 
@@ -581,71 +887,145 @@ function AdminPanel({
               Contest name
               <input
                 value={settingsDraft.contestName}
-                onChange={(event) => setSettingsDraft((current) => ({ ...current, contestName: event.target.value }))}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    contestName: event.target.value,
+                  }))
+                }
               />
             </label>
             <label>
               Contest questions
-              <input type="number" min="1" max="100" value={settingsDraft.contestQuestionCount} onChange={(event) => setSettingsDraft((current) => ({ ...current, contestQuestionCount: event.target.value }))} />
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={settingsDraft.contestQuestionCount}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    contestQuestionCount: event.target.value,
+                  }))
+                }
+              />
             </label>
             <label>
               Full contest duration (seconds)
-              <input type="number" min="30" max="14400" value={settingsDraft.contestDurationSeconds} onChange={(event) => setSettingsDraft((current) => ({ ...current, contestDurationSeconds: event.target.value }))} />
+              <input
+                type="number"
+                min="30"
+                max="14400"
+                value={settingsDraft.contestDurationSeconds}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    contestDurationSeconds: event.target.value,
+                  }))
+                }
+              />
             </label>
             <label>
-              <input type="checkbox" checked={settingsDraft.isScheduled} onChange={(event) => setSettingsDraft((current) => ({ ...current, isScheduled: event.target.checked }))} />
+              <input
+                type="checkbox"
+                checked={settingsDraft.isScheduled}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    isScheduled: event.target.checked,
+                  }))
+                }
+              />
               Enable schedule
             </label>
             <label>
               Start time
-              <input type="datetime-local" value={settingsDraft.startAt} onChange={(event) => setSettingsDraft((current) => ({ ...current, startAt: event.target.value }))} />
+              <input
+                type="datetime-local"
+                value={settingsDraft.startAt}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    startAt: event.target.value,
+                  }))
+                }
+              />
             </label>
             <label>
               End time
-              <input type="datetime-local" value={settingsDraft.endAt} onChange={(event) => setSettingsDraft((current) => ({ ...current, endAt: event.target.value }))} />
+              <input
+                type="datetime-local"
+                value={settingsDraft.endAt}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    endAt: event.target.value,
+                  }))
+                }
+              />
             </label>
             <label>
               <input
                 type="checkbox"
                 checked={settingsDraft.showLeaderboardToUsers}
-                onChange={(event) => setSettingsDraft((current) => ({ ...current, showLeaderboardToUsers: event.target.checked }))}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    showLeaderboardToUsers: event.target.checked,
+                  }))
+                }
               />
               Allow users to view contest ranking
             </label>
             {settingsDraft.selectedQuestionIds.length > 0 && (
-              <button className="secondary-action" onClick={() => setShowContestPreview(true)} type="button">
+              <button
+                className="secondary-action"
+                onClick={() => setShowContestPreview(true)}
+                type="button"
+              >
                 Contest Preview
               </button>
             )}
-            <div className="user-edit-actions">
-              <button
-                className="secondary-action"
-                onClick={() => {
-                  setDraft((current) => ({ ...current, section: "contest" }));
-                  setActiveView("add");
-                }}
-                type="button"
-              >
-                Add Question For Contest
-              </button>
-            </div>
             <div className="section-title">
-              <h2>Select Contest Questions</h2>
+              <h2>Select Contest Problems</h2>
               <span>{settingsDraft.selectedQuestionIds.length} selected</span>
             </div>
             <div className="admin-list contest-question-picker">
-              {questions.map((question) => (
-                <label className="admin-row contest-pick-row" key={question.id || question.question}>
+              {contestProblemsLoading && (
+                <p className="empty-state">Loading published problems...</p>
+              )}
+              {contestProblemsError && (
+                <p className="empty-state">{contestProblemsError}</p>
+              )}
+              {!contestProblemsLoading &&
+                !contestProblemsError &&
+                !contestProblems.length && (
+                  <p className="empty-state">
+                    No published problems available for the contest.
+                  </p>
+                )}
+              {contestProblems.map((problem) => (
+                <label className="admin-row contest-pick-row" key={problem.id}>
                   <input
+                    aria-label={`Select ${problem.title} for contest`}
                     type="checkbox"
-                    checked={settingsDraft.selectedQuestionIds.includes(question.id)}
-                    disabled={!question.id}
-                    onChange={(event) => toggleContestQuestionSelection(question.id, event.target.checked)}
+                    checked={settingsDraft.selectedQuestionIds.includes(
+                      problem.id,
+                    )}
+                    onChange={(event) =>
+                      toggleContestQuestionSelection(
+                        problem.id,
+                        event.target.checked,
+                      )
+                    }
                   />
-                  <div>
-                    <strong>{question.question}</strong>
-                    <span>{question.category} | {question.section || "both"}</span>
-                  </div>
+                  <span>
+                    <strong>{problem.title}</strong>
+                    <span>
+                      {problem.difficulty} |{" "}
+                      {problem.programmingLanguage || "Language not set"}
+                    </span>
+                  </span>
                 </label>
               ))}
             </div>
@@ -654,32 +1034,164 @@ function AdminPanel({
                 <div className="section-title">
                   <h2>Contest Preview</h2>
                   <span>
-                    {Math.min(Number(settingsDraft.contestQuestionCount) || 0, selectedQuestionsPreview.length || questions.length)} questions | {Number(settingsDraft.contestDurationSeconds) || 0}s
+                    {Math.min(
+                      Number(settingsDraft.contestQuestionCount) || 0,
+                      selectedQuestionsPreview.length || questions.length,
+                    )}{" "}
+                    questions |{" "}
+                    {Number(settingsDraft.contestDurationSeconds) || 0}s
                   </span>
                 </div>
                 <div className="admin-list question-list">
                   {selectedQuestionsPreview.length ? (
                     selectedQuestionsPreview.map((question, index) => (
-                      <article className="admin-row user-edit-row question-row" key={`${question.id}-${index}`}>
+                      <article
+                        className="admin-row user-edit-row question-row"
+                        key={`${question.id}-${index}`}
+                      >
                         <div>
-                          <strong>#{index + 1} {question.question}</strong>
-                          <span>{question.category} | Answer: {question.answer}</span>
+                          <strong>
+                            #{index + 1} {question.title}
+                          </strong>
+                          <span>
+                            {question.difficulty} |{" "}
+                            {question.programmingLanguage || "Language not set"}
+                          </span>
                         </div>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" disabled={index === 0} onClick={() => moveContestQuestion(index, -1)} type="button">Up</button>
-                          <button className="secondary-action" disabled={index === selectedQuestionsPreview.length - 1} onClick={() => moveContestQuestion(index, 1)} type="button">Down</button>
-                          <button className="danger-action" onClick={() => toggleContestQuestionSelection(question.id, false)} type="button">Remove</button>
+                          <button
+                            className="secondary-action"
+                            disabled={index === 0}
+                            onClick={() => moveContestQuestion(index, -1)}
+                            type="button"
+                          >
+                            Up
+                          </button>
+                          <button
+                            className="secondary-action"
+                            disabled={
+                              index === selectedQuestionsPreview.length - 1
+                            }
+                            onClick={() => moveContestQuestion(index, 1)}
+                            type="button"
+                          >
+                            Down
+                          </button>
+                          <button
+                            className="danger-action"
+                            onClick={() =>
+                              toggleContestQuestionSelection(question.id, false)
+                            }
+                            type="button"
+                          >
+                            Remove
+                          </button>
                         </div>
                       </article>
                     ))
                   ) : (
-                    <p className="empty-state">No selected questions yet. Select questions to lock order.</p>
+                    <p className="empty-state">
+                      No selected questions yet. Select questions to lock order.
+                    </p>
                   )}
                 </div>
               </section>
             )}
             {statusMessage}
-            <button className="primary-action" type="submit">Save Contest Settings</button>
+            <button className="primary-action" type="submit">
+              Save Contest Settings
+            </button>
+          </form>
+        )}
+
+        {activeView === "quiz" && (
+          <form className="admin-form" onSubmit={saveQuizSettings}>
+            <label>
+              Quiz name
+              <input
+                value={quizDraft.quizName}
+                onChange={(event) =>
+                  setQuizDraft((current) => ({
+                    ...current,
+                    quizName: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Quiz questions
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={quizDraft.quizQuestionCount}
+                onChange={(event) =>
+                  setQuizDraft((current) => ({
+                    ...current,
+                    quizQuestionCount: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Quiz duration (seconds)
+              <input
+                type="number"
+                min="30"
+                max="14400"
+                value={quizDraft.quizDurationSeconds}
+                onChange={(event) =>
+                  setQuizDraft((current) => ({
+                    ...current,
+                    quizDurationSeconds: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <div className="section-title">
+              <h2>Select Quiz Questions</h2>
+              <span>{quizDraft.selectedQuizQuestionIds.length} selected</span>
+            </div>
+            <button
+              className="secondary-action"
+              onClick={() => {
+                setAddingQuizQuestion(true);
+                setDraft((current) => ({ ...current, section: "quiz" }));
+                setActiveView("add");
+              }}
+              type="button"
+            >
+              Add Quiz Question
+            </button>
+            <div className="admin-list contest-question-picker">
+              {questions.map((question) => (
+                <label className="admin-row contest-pick-row" key={question.id}>
+                  <input
+                    aria-label={`Select ${question.question} for quiz`}
+                    type="checkbox"
+                    checked={quizDraft.selectedQuizQuestionIds.includes(
+                      question.id,
+                    )}
+                    onChange={(event) =>
+                      toggleQuizQuestionSelection(
+                        question.id,
+                        event.target.checked,
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>{question.question}</strong>
+                    <span>
+                      {question.category} | {question.options.join(" | ")}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {statusMessage}
+            <button className="primary-action" type="submit">
+              Save Quiz Settings
+            </button>
           </form>
         )}
 
@@ -687,7 +1199,9 @@ function AdminPanel({
           <section className="admin-section">
             <div className="section-title">
               <h2>Contest LeaderBoard</h2>
-              <span>{(settingsDraft.contestName || "Weekly Contest").trim()}</span>
+              <span>
+                {(settingsDraft.contestName || "Weekly Contest").trim()}
+              </span>
             </div>
             <div className="section-title">
               <span>Rank: right answers first, then lower avg time</span>
@@ -695,7 +1209,9 @@ function AdminPanel({
             <div className="user-edit-actions">
               <button
                 className="secondary-action"
-                disabled={settingsDraft.showLeaderboardToUsers || showLeaderboardVerify}
+                disabled={
+                  settingsDraft.showLeaderboardToUsers || showLeaderboardVerify
+                }
                 onClick={() => {
                   setShowLeaderboardVerify(true);
                   setLeaderboardVerifyChecked(false);
@@ -710,7 +1226,9 @@ function AdminPanel({
                 <label>
                   <input
                     checked={leaderboardVerifyChecked}
-                    onChange={(event) => setLeaderboardVerifyChecked(event.target.checked)}
+                    onChange={(event) =>
+                      setLeaderboardVerifyChecked(event.target.checked)
+                    }
                     type="checkbox"
                   />
                   Verify: Allow LeaderBoard for all users
@@ -719,7 +1237,10 @@ function AdminPanel({
                   className="secondary-action"
                   disabled={!leaderboardVerifyChecked}
                   onClick={() => {
-                    setSettingsDraft((current) => ({ ...current, showLeaderboardToUsers: true }));
+                    setSettingsDraft((current) => ({
+                      ...current,
+                      showLeaderboardToUsers: true,
+                    }));
                     setShowLeaderboardVerify(false);
                     setLeaderboardVerifyChecked(false);
                   }}
@@ -730,18 +1251,28 @@ function AdminPanel({
               </div>
             )}
             <div className="admin-list">
-              {leaderboard.length ? leaderboard.map((row, index) => (
-                <article className="admin-row" key={row.email}>
-                  <div>
-                    <strong>#{index + 1} {row.name}</strong>
-                    <span>{row.email}</span>
-                  </div>
-                  <div>
-                    <strong>{row.totalCorrect} correct</strong>
-                    <span>{Number.isFinite(row.avgTimePerQuestion) ? `${row.avgTimePerQuestion.toFixed(2)}s / question` : "-"}</span>
-                  </div>
-                </article>
-              )) : <p className="empty-state">No contest attempts yet.</p>}
+              {leaderboard.length ? (
+                leaderboard.map((row, index) => (
+                  <article className="admin-row" key={row.email}>
+                    <div>
+                      <strong>
+                        #{index + 1} {row.name}
+                      </strong>
+                      <span>{row.email}</span>
+                    </div>
+                    <div>
+                      <strong>{row.totalCorrect} correct</strong>
+                      <span>
+                        {Number.isFinite(row.avgTimePerQuestion)
+                          ? `${row.avgTimePerQuestion.toFixed(2)}s / question`
+                          : "-"}
+                      </span>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <p className="empty-state">No contest attempts yet.</p>
+              )}
             </div>
           </section>
         )}

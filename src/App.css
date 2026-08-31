@@ -934,6 +934,17 @@
   padding: 13px;
 }
 
+.contest-problem-card {
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.contest-problem-card:hover {
+  border-color: #60a5fa;
+}
+
 .admin-row div {
   display: grid;
   gap: 4px;

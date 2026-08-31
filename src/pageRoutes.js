@@ -1,4 +1,3 @@
-
 import { getQuizCategoryBySlug } from "./Components/QuizCategories";
 
 export const pageRoutes = {
@@ -7,6 +6,7 @@ export const pageRoutes = {
   register: "/register",
   reset: "/reset-password",
   quiz: "/quiz",
+  contest: "/contest",
   compiler: "/compiler",
   profile: "/profile",
   editProfile: "/profile/edit",
@@ -19,6 +19,9 @@ export const pageRoutes = {
   Allproblem: "/all-problem",
   StartQuiz: "/quiz/start/",
   QuizStart: "/startquiz",
+  Aboutus: "/aboutus/codesnipers/",
+  Privacy: "/privacy/codesnipers/",
+  Contactus: "/contactus/codesnipers/",
 
   //practice pageroutes
   Practice: "/practice",
@@ -32,7 +35,6 @@ export const pageRoutes = {
   Practicec: "/practice/c",
   Practicesql: "/practice/sql",
 
-
   compilers: "/code/compiler",
   javaproblem: "/javaproblem",
   cppproblem: "/quiz/cppproblem",
@@ -42,11 +44,6 @@ export const pageRoutes = {
 
   Questiondetail: "/problem/:id",
   PracticeQuestion: "/practice-question/:id",
-
-
- 
-  
-
 };
 
 const pathToPage = {
@@ -56,6 +53,7 @@ const pathToPage = {
   [pageRoutes.register]: "register",
   [pageRoutes.reset]: "reset",
   [pageRoutes.quiz]: "quiz",
+  [pageRoutes.contest]: "contest",
   [pageRoutes.compiler]: "compiler",
   [pageRoutes.profile]: "profile",
   [pageRoutes.editProfile]: "editProfile",
@@ -65,8 +63,11 @@ const pathToPage = {
   [pageRoutes.admin]: "admin",
   [pageRoutes.StartQuiz]: "StartQuiz",
   [pageRoutes.QuizStart]: "QuizStart",
+  [pageRoutes.Aboutus]: "Aboutus",
+  [pageRoutes.Privacy]: "Privacy",
+  [pageRoutes.Contactus]: "Contactus",
 
-//Practice path to page
+  //Practice path to page
   [pageRoutes.Practicejava]: "Practicejava",
   [pageRoutes.Practicecpp]: "Practicecpp",
   [pageRoutes.Practicepython]: "Practicepython",
@@ -85,11 +86,9 @@ const pathToPage = {
   [pageRoutes.javascriptproblem]: "javascriptproblem",
   [pageRoutes.Questiondetail]: "Questiondetail",
   [pageRoutes.PracticeQuestion]: "PracticeQuestion",
-  
+
   [pageRoutes.Game]: "Game",
   [pageRoutes.Allproblem]: "Allproblem",
-
-  
 };
 
 export const getQuizCategoryFromPath = (pathname) => {
@@ -101,6 +100,10 @@ export const getQuizCategoryFromPath = (pathname) => {
 export const getRequestedPageFromPath = (pathname) => {
   if (getQuizCategoryFromPath(pathname)) {
     return "quiz";
+  }
+
+  if (/^\/quiz\/start\/?$/.test(pathname)) {
+    return "quizStart";
   }
 
   if (/^\/practice\/[^/]+\/modules\/[^/]+\/?$/.test(pathname)) {
@@ -124,13 +127,28 @@ export const getRequestedPageFromPath = (pathname) => {
 
 export const getAllowedPage = (pathname, currentUser) => {
   const page = getRequestedPageFromPath(pathname);
-  const protectedPages = ["quiz",  "profile", "editProfile", "certificate", "resume", "logout"];
+  const protectedPages = [
+    "quiz",
+    "quizStart",
+    "contest",
+    "profile",
+    "editProfile",
+    "certificate",
+    "resume",
+    "logout",
+  ];
 
   if (protectedPages.includes(page) && !currentUser) {
     return "login";
   }
 
-  if ((page === "landing" || page === "login" || page === "register" || page === "reset") && currentUser) {
+  if (
+    (page === "landing" ||
+      page === "login" ||
+      page === "register" ||
+      page === "reset") &&
+    currentUser
+  ) {
     return "quiz";
   }
 
