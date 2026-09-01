@@ -41,6 +41,7 @@ import "./App.css";
 import Thanks from "./Components/LandingPage/Thanku.jsx";
 import Questiondetail from "./Components/Questiondetail.jsx";
 import PracticeLearningPath from "./Components/PracticeLearningPath.jsx";
+import Problemsheet from "./Components/Problemsheet.jsx";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -1299,6 +1300,7 @@ function App() {
       <Route path="/game" element={<Game></Game>} />
       <Route path="/all-problem" element={<Problems />} />
       <Route path="/startquiz" element={<StartQuiz1 />} />
+      <Route path="/problem-sheet" element={<Problemsheet/>} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />

@@ -25,12 +25,6 @@ export const pageRoutes = {
   problemsheet: "/problem-sheet",
     About:"/aboutus/codesnipers/",
 
-
-
-
-
-
-
   //practice pageroutes
   Practice: "/practice",
   PracticeLanguage: "/practice/:languageSlug",
@@ -74,6 +68,7 @@ const pathToPage = {
   [pageRoutes.Aboutus]: "Aboutus",
   [pageRoutes.Privacy]: "Privacy",
   [pageRoutes.Contactus]: "Contactus",
+  [pageRoutes.problemsheet]: "problemsheet",
 
   //Practice path to page
   [pageRoutes.Practicejava]: "Practicejava",
