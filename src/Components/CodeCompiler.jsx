@@ -204,16 +204,18 @@ function CodeCompiler({
   user,
   preferredLanguage,
   problemId,
+  starterCode = {},
   hiddenTestCases = [],
   onVerificationStateChange,
   onCodeStateChange,
+  onSolutionSubmitted,
 }) {
   const [language, setLanguage] = useState("javascript");
   const [codeByLanguage, setCodeByLanguage] = useState(() =>
     Object.fromEntries(
       Object.entries(languageConfigs).map(([key, config]) => [
         key,
-        config.starter,
+        starterCode[key] || config.starter,
       ]),
     ),
   );
@@ -528,6 +530,7 @@ function CodeCompiler({
         message: "✅ Solution submitted and accepted.",
       });
       setOutput(payload.message || "Solution accepted.");
+      onSolutionSubmitted?.();
     } catch (error) {
       updateVerificationState({
         status: "failed",

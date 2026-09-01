@@ -4,14 +4,11 @@ import AboutUs from "./Components/LandingPage/Aboutus.jsx";
 import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
 import ContactUs from "./Components/LandingPage/Contctus.jsx";
 import Participates from "./Components/LandingPage/Participate.jsx";
-import QuizStarts from "./Components/Quizstart.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
 import Practice from "./Components/Practice/Practices.jsx";
-import StartQuiz from "./Components/Quiz/Quiz1.jsx";
-import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx";
 import Game from "./Components/Game.jsx";
-import Problemsheet from "./Components/Problemsheet.jsx";
+import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx";
 
 import {
   Navigate,
@@ -44,8 +41,7 @@ import "./App.css";
 import Thanks from "./Components/LandingPage/Thanku.jsx";
 import Questiondetail from "./Components/Questiondetail.jsx";
 import PracticeLearningPath from "./Components/PracticeLearningPath.jsx";
-
-
+import Problemsheet from "./Components/Problemsheet.jsx";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -54,9 +50,10 @@ const SESSION_KEY = "onlineQuizCurrentUser";
 const QUESTIONS_KEY = "onlineQuizQuestions";
 const ADMIN_SESSION_KEY = "onlineQuizAdminSession";
 const THEME_KEY = "onlineQuizTheme";
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || ""
-).replace(/\/+$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
+  /\/+$/,
+  "",
+);
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
 const apiFetch = async (path, options) => {
@@ -110,6 +107,13 @@ const defaultContestSettings = {
   endAt: null,
   selectedQuestionIds: [],
   showLeaderboardToUsers: false,
+};
+
+const defaultQuizSettings = {
+  quizName: "Practice Quiz",
+  quizQuestionCount: 10,
+  quizDurationSeconds: 600,
+  selectedQuizQuestionIds: [],
 };
 
 const getDefaultResume = (user = {}) => ({
@@ -205,6 +209,7 @@ function App() {
   const [contestSettings, setContestSettings] = useState(
     defaultContestSettings,
   );
+  const [quizSettings, setQuizSettings] = useState(defaultQuizSettings);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -320,6 +325,7 @@ function App() {
 
         if (!isCancelled) {
           setContestSettings(apiContestSettings);
+          setQuizSettings({ ...defaultQuizSettings, ...apiContestSettings });
         }
       } catch {
         // Keep local fallback when API is unavailable.
@@ -765,6 +771,11 @@ function App() {
 
     const updatedQuestions = await fetchQuestionsFromApi();
     saveQuestions(updatedQuestions);
+    return updatedQuestions.find(
+      (item) =>
+        item.question === question.question &&
+        item.category === question.category,
+    );
   };
 
   const deleteQuestion = async (questionIdOrIndex) => {
@@ -824,6 +835,20 @@ function App() {
       ...defaultContestSettings,
       ...(payload.settings || {}),
     });
+  };
+
+  const updateQuizSettings = async (updates) => {
+    const response = await apiFetch("/api/contest-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Could not update quiz settings.");
+    }
+    const payload = await response.json();
+    setQuizSettings({ ...defaultQuizSettings, ...(payload.settings || {}) });
   };
 
   const deleteUser = async (email) => {
@@ -1037,6 +1062,7 @@ function App() {
         <AdminPanel
           backLabel={currentUser ? "Quiz" : "Login"}
           contestSettings={contestSettings}
+          quizSettings={quizSettings}
           onAddQuestion={addQuestion}
           onBackToQuiz={closeAdminPanel}
           onDeleteQuestion={deleteQuestion}
@@ -1045,6 +1071,7 @@ function App() {
           onToggleTheme={toggleTheme}
           onToggleUserBlock={toggleUserBlock}
           onUpdateContestSettings={updateContestSettings}
+          onUpdateQuizSettings={updateQuizSettings}
           onUpdateQuestion={updateQuestion}
           onUpdateUser={updateUser}
           questions={questions}
@@ -1099,7 +1126,9 @@ function App() {
             users={users}
             userBlocked={isCurrentUserBlocked}
             contestSettings={contestSettings}
+            contestLanding={mode === "contest"}
             onChangePractice={() => goToPage("quiz")}
+            onOpenContest={() => goToPage("contest")}
             onSelectCategory={goToQuizCategory}
           />
         ) : (
@@ -1146,7 +1175,11 @@ function App() {
           users={users}
           userBlocked={isCurrentUserBlocked}
           contestSettings={contestSettings}
+          contestLanding={mode === "contest"}
+          quizLanding={mode === "quizStart"}
+          quizSettings={quizSettings}
           onChangePractice={() => goToPage("quiz")}
+          onOpenContest={() => goToPage("contest")}
           onSelectCategory={goToQuizCategory}
         />
       );
@@ -1224,8 +1257,6 @@ function App() {
         path="/participate/challenge/javascript/"
         element={<Participates />}
       />
-      <Route path="/quiz/start" element={<QuizStarts />} />
-
       <Route path="/participate/challenge/react/" element={<Participates />} />
       <Route path="/submit" element={<Thanks />} />
       <Route
@@ -1236,7 +1267,8 @@ function App() {
         path="/participate/challenge/javascript/"
         element={<Participates />}
       />
-      <Route path="/quiz/start" element={<QuizStarts />} />
+      <Route path="/quiz/start" element={currentPage} />
+      <Route path="/quiz/start/" element={currentPage} />
       <Route path="/javaproblem" element={<Problems />} />
       <Route path="/quiz/cppproblem" element={<Problems />} />
       <Route path="/htmlproblem" element={<Problems />} />
@@ -1245,23 +1277,36 @@ function App() {
       <Route path="/question-details" element={currentPage} />
       <Route path="/problem/:id" element={currentPage} />
 
-      <Route path="/practice/:languageSlug" element={<PracticeLearningPath />} />
-      <Route path="/practice/:languageSlug/modules/:moduleId" element={<PracticeLearningPath />} />
-      <Route path="/practice-question/:id" element={<Questiondetail questionSource="practice" theme={theme} user={currentUser} />} />
-      
-      <Route path="/practice" element={<Practice></Practice>}/>
-      <Route path="/all-problem" element={<Problems />}/>
-      <Route path="/quiz/start/" element = {<StartQuiz/>}/>
-      <Route path="/startquiz" element={<StartQuiz1/>}/>
-      <Route path="/Game" element={<Game/>}/>
-      <Route path="/problem-sheet" element={<Problemsheet/>}/>
-    
-     
+      <Route
+        path="/practice/:languageSlug"
+        element={<PracticeLearningPath />}
+      />
+      <Route
+        path="/practice/:languageSlug/modules/:moduleId"
+        element={<PracticeLearningPath />}
+      />
+      <Route
+        path="/practice-question/:id"
+        element={
+          <Questiondetail
+            questionSource="practice"
+            theme={theme}
+            user={currentUser}
+          />
+        }
+      />
+
+      <Route path="/practice" element={<Practice></Practice>} />
+      <Route path="/game" element={<Game></Game>} />
+      <Route path="/all-problem" element={<Problems />} />
+      <Route path="/startquiz" element={<StartQuiz1 />} />
+      <Route path="/problem-sheet" element={<Problemsheet/>} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />
       <Route path={pageRoutes.quiz} element={currentPage} />
+      <Route path={pageRoutes.contest} element={currentPage} />
       <Route path={pageRoutes.compiler} element={currentPage} />
       <Route path="/quiz/:categorySlug" element={currentPage} />
       <Route path={pageRoutes.profile} element={currentPage} />
