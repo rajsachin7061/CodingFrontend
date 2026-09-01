@@ -585,7 +585,8 @@ function Quiz({
             <a href="/all-courses">Course</a>
 
             <a href="/all-problem">Problem</a>
-            <a href="/game">Game</a>
+            <a href="/problem-sheet">problemsheet</a>
+            <a href="/Game">Game</a>
             <a href="/compiler">Compiler</a>
           </div>
 

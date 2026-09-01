@@ -15,13 +15,24 @@ export const pageRoutes = {
   logout: "/logout",
   admin: "/admin",
   problems: "/javaproblems",
-  Game: "/game",
   Allproblem: "/all-problem",
   StartQuiz: "/quiz/start/",
   QuizStart: "/startquiz",
+<<<<<<< HEAD
   Aboutus: "/aboutus/codesnipers/",
   Privacy: "/privacy/codesnipers/",
   Contactus: "/contactus/codesnipers/",
+=======
+  Game: "/Game",
+  problemsheet: "/problem-sheet",
+    About:"/aboutus/codesnipers/",
+
+
+
+
+
+
+>>>>>>> f6028d45f0caa946a27f893249eb3887f6d136d4
 
   //practice pageroutes
   Practice: "/practice",
@@ -86,8 +97,15 @@ const pathToPage = {
   [pageRoutes.javascriptproblem]: "javascriptproblem",
   [pageRoutes.Questiondetail]: "Questiondetail",
   [pageRoutes.PracticeQuestion]: "PracticeQuestion",
+<<<<<<< HEAD
 
+=======
+>>>>>>> f6028d45f0caa946a27f893249eb3887f6d136d4
   [pageRoutes.Game]: "Game",
+  [pageRoutes.problemsheet]: "problemsheet",
+  [pageRoutes.About]: "About",
+  
+ 
   [pageRoutes.Allproblem]: "Allproblem",
 };
 

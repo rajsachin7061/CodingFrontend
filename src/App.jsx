@@ -1313,6 +1313,7 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
+ 
       <Route
         path="*"
         element={

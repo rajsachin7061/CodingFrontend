@@ -33,6 +33,16 @@ export const problemsApi = {
   tags: () => jsonRequest("/api/problems/tags"),
 };
 
+export const problemSheetApi = {
+  get: () => jsonRequest("/api/problem-sheet"),
+  save: (problemIds) =>
+    jsonRequest("/api/problem-sheet", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemIds }),
+    }),
+};
+
 export const practiceQuestionDataApi = {
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
