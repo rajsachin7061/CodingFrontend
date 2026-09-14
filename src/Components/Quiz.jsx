@@ -164,6 +164,12 @@ function Quiz({
           )
         : [];
   const currentQuestion = practiceQuestions[index];
+  const currentHiddenTestCaseCount =
+    typeof currentQuestion?.hiddenTestCaseCount === "number"
+      ? currentQuestion.hiddenTestCaseCount
+      : Array.isArray(currentQuestion?.hiddenTestCases)
+        ? currentQuestion.hiddenTestCases.length
+        : 0;
   const questionNumber = index + 1;
   const progress = practiceQuestions.length
     ? (questionNumber / practiceQuestions.length) * 100
@@ -1182,10 +1188,10 @@ function Quiz({
                     <p>{currentQuestion.memoryLimit}</p>
                   </div>
                 )}
-                {Array.isArray(currentQuestion.hiddenTestCases) && (
+                {currentHiddenTestCaseCount > 0 && (
                   <div>
                     <h2>Hidden Test Cases</h2>
-                    <p>{currentQuestion.hiddenTestCases.length}</p>
+                    <p>{currentHiddenTestCaseCount}</p>
                   </div>
                 )}
               </div>
@@ -1199,7 +1205,7 @@ function Quiz({
               fallback={<p className="compiler-loading">Loading compiler...</p>}
             >
               <CodeCompiler
-                hiddenTestCases={currentQuestion.hiddenTestCases}
+                hiddenTestCaseCount={currentHiddenTestCaseCount}
                 onLogout={onLogout}
                 onSolutionSubmitted={handleContestSubmission}
                 onToggleTheme={onToggleTheme}

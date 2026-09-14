@@ -7,7 +7,10 @@ function ProfilePage({ user }) {
   return (
     <>
       {renderAvatar(user)}
-      <div className="detail-list profile-detail-grid" aria-label="User details">
+      <div
+        className="detail-list profile-detail-grid"
+        aria-label="User details"
+      >
         <div>
           <span>Username</span>
           <strong>@{user.username}</strong>

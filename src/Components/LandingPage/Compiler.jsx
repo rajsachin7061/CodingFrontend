@@ -45,10 +45,9 @@ print(2 + 2)`,
 
 public class Main {
   public static void main(String[] args) {
-    Scanner scanner = new Scanner(System.in);
-    String name = scanner.hasNextLine() ? scanner.nextLine() : "Coder";
-    System.out.println("Hello, " + name + "!");
-    System.out.println(2 + 2);
+    
+    
+    
   }
 }`,
     stdin: "Coder",
