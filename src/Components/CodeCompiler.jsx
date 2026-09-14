@@ -52,10 +52,7 @@ print(2 + 2)`,
 
 public class Main {
   public static void main(String[] args) {
-    Scanner scanner = new Scanner(System.in);
-    String name = scanner.hasNextLine() ? scanner.nextLine() : "Coder";
-    System.out.println("Hello, " + name + "!");
-    System.out.println(2 + 2);
+    
   }
 }`,
     stdin: "Coder",
@@ -206,6 +203,7 @@ function CodeCompiler({
   problemId,
   starterCode = {},
   hiddenTestCases = [],
+  hiddenTestCaseCount,
   onVerificationStateChange,
   onCodeStateChange,
   onSolutionSubmitted,
@@ -416,9 +414,12 @@ function CodeCompiler({
   };
 
   const runVerification = async () => {
-    const totalCases = Array.isArray(hiddenTestCases)
-      ? hiddenTestCases.length
-      : 0;
+    const totalCases =
+      typeof hiddenTestCaseCount === "number"
+        ? hiddenTestCaseCount
+        : Array.isArray(hiddenTestCases)
+          ? hiddenTestCases.length
+          : 0;
 
     if (!problemId || totalCases === 0 || !serverLanguages.has(language)) {
       updateVerificationState({

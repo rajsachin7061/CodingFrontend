@@ -13,10 +13,13 @@ const jsonRequest = async (path, options = {}) => {
 
 export const problemsApi = {
   list: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams({
+      includeHidden: "1",
+      ...params,
+    }).toString();
     return jsonRequest(`/api/problems?${query}`);
   },
-  get: (id) => jsonRequest(`/api/problems/${id}`),
+  get: (id) => jsonRequest(`/api/problems/${id}?includeHidden=1`),
   create: (body) =>
     jsonRequest("/api/problems", {
       method: "POST",
@@ -45,10 +48,13 @@ export const problemSheetApi = {
 
 export const practiceQuestionDataApi = {
   list: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams({
+      includeHidden: "1",
+      ...params,
+    }).toString();
     return jsonRequest(`/api/practice-question-data?${query}`);
   },
-  get: (id) => jsonRequest(`/api/practice-question-data/${id}`),
+  get: (id) => jsonRequest(`/api/practice-question-data/${id}?includeHidden=1`),
   create: (body) =>
     jsonRequest("/api/practice-question-data", {
       method: "POST",
