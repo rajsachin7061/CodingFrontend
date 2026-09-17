@@ -51,9 +51,7 @@ const getSolutionEntries = (solution) => {
   if (!solution) return [];
 
   if (typeof solution === "string") {
-    return solution.trim()
-      ? [["official", "Official", solution.trim()]]
-      : [];
+    return solution.trim() ? [["official", "Official", solution.trim()]] : [];
   }
 
   if (typeof solution === "object") {
@@ -247,7 +245,9 @@ const Questiondetail = ({
         ([key]) =>
           key.toLowerCase() ===
           String(problem?.programmingLanguage || "").toLowerCase(),
-      )?.[0] || solutionEntries[0]?.[0] || "";
+      )?.[0] ||
+      solutionEntries[0]?.[0] ||
+      "";
 
     setSelectedSolutionKey(preferredKey);
     setUnlockedHints(1);
@@ -409,10 +409,14 @@ const Questiondetail = ({
 
       {message && <p className="problem-inline-message">{message}</p>}
 
-      <DetailSection title="Description">{problem.description}</DetailSection>
+      <DetailSection title="Description">
+        {problem.description}
+      </DetailSection>
       <DetailSection title="Notes">{problem.notes}</DetailSection>
       <DetailSection title="Input Format">{problem.inputFormat}</DetailSection>
-      <DetailSection title="Output Format">{problem.outputFormat}</DetailSection>
+      <DetailSection title="Output Format">
+        {problem.outputFormat}
+      </DetailSection>
       <DetailSection title="Constraints">{problem.constraints}</DetailSection>
 
       {problem.sampleTestCases?.length > 0 && (
@@ -492,7 +496,9 @@ const Questiondetail = ({
 
     if (submissionsState.status === "error") {
       return (
-        <TabStateMessage type="error">Could not load submissions.</TabStateMessage>
+        <TabStateMessage type="error">
+          Could not load submissions.
+        </TabStateMessage>
       );
     }
 
@@ -615,7 +621,9 @@ const Questiondetail = ({
 
     if (!hints.length) {
       return (
-        <TabStateMessage>No hints are available for this problem.</TabStateMessage>
+        <TabStateMessage>
+          No hints are available for this problem.
+        </TabStateMessage>
       );
     }
 
@@ -657,8 +665,8 @@ const Questiondetail = ({
 
       {aiState.status === "idle" && !aiMessages.length && (
         <TabStateMessage type="error">
-          AI Help is currently unavailable until the backend implements
-          POST /api/ai/problem-help.
+          AI Help is currently unavailable until the backend implements POST
+          /api/ai/problem-help.
         </TabStateMessage>
       )}
 
