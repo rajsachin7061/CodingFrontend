@@ -439,6 +439,7 @@
   color: var(--ink-500);
   line-height: 1.75;
   margin: 0;
+  white-space: pre-wrap;
 }
 
 .sample-grid {
