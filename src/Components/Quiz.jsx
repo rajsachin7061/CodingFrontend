@@ -1211,6 +1211,11 @@ function Quiz({
                 onToggleTheme={onToggleTheme}
                 preferredLanguage={currentQuestion.programmingLanguage}
                 problemId={currentQuestion.id}
+                sampleInput={
+                  currentQuestion.sampleTestCases?.[0]?.input == null
+                    ? ""
+                    : String(currentQuestion.sampleTestCases[0].input)
+                }
                 starterCode={currentQuestion.starterCode}
                 theme={theme}
                 user={user}

@@ -67,6 +67,12 @@ const getSolutionEntries = (solution) => {
   return [];
 };
 
+const getFirstSampleInput = (problem) => {
+  const sampleInput = problem?.sampleTestCases?.[0]?.input;
+
+  return sampleInput == null ? "" : String(sampleInput);
+};
+
 const DetailSection = ({ title, children }) => {
   if (!children) return null;
 
@@ -409,9 +415,7 @@ const Questiondetail = ({
 
       {message && <p className="problem-inline-message">{message}</p>}
 
-      <DetailSection title="Description">
-        {problem.description}
-      </DetailSection>
+      <DetailSection title="Description">{problem.description}</DetailSection>
       <DetailSection title="Notes">{problem.notes}</DetailSection>
       <DetailSection title="Input Format">{problem.inputFormat}</DetailSection>
       <DetailSection title="Output Format">
@@ -865,6 +869,8 @@ const Questiondetail = ({
               user={user}
               preferredLanguage={problem?.programmingLanguage}
               problemId={problemId}
+              starterCode={problem?.starterCode}
+              sampleInput={getFirstSampleInput(problem)}
               hiddenTestCaseCount={hiddenTestCaseCount}
               onVerificationStateChange={setVerificationState}
               onSolutionSubmitted={() =>
