@@ -201,6 +201,7 @@ function CodeCompiler({
   user,
   preferredLanguage,
   problemId,
+  sampleInput,
   starterCode = {},
   hiddenTestCases = [],
   hiddenTestCaseCount,
@@ -221,7 +222,7 @@ function CodeCompiler({
     Object.fromEntries(
       Object.entries(languageConfigs).map(([key, config]) => [
         key,
-        config.stdin || "",
+        sampleInput !== undefined ? sampleInput : config.stdin || "",
       ]),
     ),
   );
@@ -273,6 +274,29 @@ function CodeCompiler({
     setOutput(`Ready to run ${languageConfigs[nextLanguage].label}.`);
   }, [preferredLanguage]);
 
+  useEffect(() => {
+    if (sampleInput === undefined) {
+      return;
+    }
+
+    setStdinByLanguage((current) =>
+      Object.fromEntries(
+        Object.keys(languageConfigs).map((key) => [key, sampleInput]),
+      ),
+    );
+  }, [problemId, sampleInput]);
+
+  useEffect(() => {
+    setCodeByLanguage(
+      Object.fromEntries(
+        Object.entries(languageConfigs).map(([key, config]) => [
+          key,
+          starterCode[key] || config.starter,
+        ]),
+      ),
+    );
+  }, [problemId, starterCode]);
+
   const updateVerificationState = (nextState) => {
     setVerificationState((current) => {
       const nextValue = { ...current, ...nextState };
@@ -310,7 +334,7 @@ function CodeCompiler({
   const changeLanguage = (event) => {
     const nextLanguage = event.target.value;
     const nextCode =
-      codeByLanguage[nextLanguage] || languageConfigs[nextLanguage].starter;
+      starterCode[nextLanguage] || languageConfigs[nextLanguage].starter;
     setLanguage(nextLanguage);
     setPreviewHtml("");
     setOutput(`Ready to run ${languageConfigs[nextLanguage].label}.`);
@@ -564,10 +588,10 @@ function CodeCompiler({
   };
 
   const resetCode = () => {
-    updateCode(config.starter);
+    updateCode(starterCode[language] || config.starter);
     setStdinByLanguage((current) => ({
       ...current,
-      [language]: config.stdin || "",
+      [language]: sampleInput !== undefined ? sampleInput : config.stdin || "",
     }));
     setPreviewHtml("");
     setOutput(`Reset ${config.label} starter code.`);
