@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
+import Footer from "./LandingPage/Footer.jsx";
 
 const Problemsheet = () => {
   const [problems, setProblems] = useState([]);
@@ -25,11 +26,11 @@ const Problemsheet = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 sm:px-8">
-      <div className="mx-auto max-w-5xl">
+    <main className="min-h-screen bg-[#f3f6ff] px-5 py-10 text-slate-900 sm:px-8 lg:px-16">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-cyan-700">
-            Practice collection
+            Problem collection
           </p>
           <h1 className="mt-2 text-3xl font-bold text-slate-950">
             Problem Sheet
@@ -54,27 +55,33 @@ const Problemsheet = () => {
             No problems have been added to this sheet yet.
           </p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4">
           {problems.map((problem, index) => (
             <a
-              className="rounded-lg border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-md"
+              className="group flex min-h-28 items-center gap-5 rounded-3xl border border-slate-200 bg-slate-50/90 px-6 py-5 transition hover:border-violet-300 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.12)] sm:px-7"
               href={`/problem/${problem.id}`}
               key={problem.id}
             >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-cyan-700">
-                  #{index + 1}
-                </span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
-                  {problem.difficulty}
-                </span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xl font-bold text-white shadow-sm">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-bold text-slate-950 sm:text-xl">
+                  {problem.title}
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  {problem.difficulty || "Practice"}
+                  {problem.tags?.length ? ` • ${problem.tags.join(", ")}` : ""}
+                </p>
               </div>
-              <h2 className="font-bold text-slate-950">{problem.title}</h2>
-              <p className="mt-2 text-xs text-slate-500">/{problem.slug}</p>
+              <span className="shrink-0 text-sm font-bold text-violet-700 transition group-hover:text-violet-900 sm:text-base">
+                Open <span aria-hidden="true">→</span>
+              </span>
             </a>
           ))}
         </div>
       </div>
+      <div><Footer></Footer></div>
     </main>
   );
 };
