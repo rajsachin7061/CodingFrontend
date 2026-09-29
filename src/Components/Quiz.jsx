@@ -589,9 +589,10 @@ function Quiz({
 
           <div className="home-nav-links">
             <a href="/all-courses">Course</a>
+            <a href="/practice-sheet">Practice</a>
 
-            <a href="/all-problem">Problem</a>
-            <a href="/problem-sheet">problemsheet</a>
+            {/* <a href="/all-problem">Problem</a> */}
+            <a href="/dsa-problem-sheet">Problem</a>
             <a href="/Game">Game</a>
             <a href="/compiler">Compiler</a>
           </div>

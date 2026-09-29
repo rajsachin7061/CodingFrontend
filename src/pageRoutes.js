@@ -22,7 +22,8 @@ export const pageRoutes = {
   Privacy: "/privacy/codesnipers/",
   Contactus: "/contactus/codesnipers/",
   Game: "/Game",
-  problemsheet: "/problem-sheet",
+  problemsheet: "/dsa-problem-sheet",
+  practicesheet: "/practice-sheet",
     About:"/aboutus/codesnipers/",
 
   //practice pageroutes
@@ -69,6 +70,7 @@ const pathToPage = {
   [pageRoutes.Privacy]: "Privacy",
   [pageRoutes.Contactus]: "Contactus",
   [pageRoutes.problemsheet]: "problemsheet",
+  [pageRoutes.practicesheet]: "practicesheet",
 
   //Practice path to page
   [pageRoutes.Practicejava]: "Practicejava",

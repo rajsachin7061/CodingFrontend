@@ -63,17 +63,12 @@ public class Main {
     extension: cpp(),
     showInput: true,
     starter: `#include <iostream>
-#include <string>
 using namespace std;
 
 int main() {
-  string name;
-  getline(cin, name);
-  if (name.empty()) {
-    name = "Coder";
-  }
-  cout << "Hello, " << name << "!" << endl;
-  cout << 2 + 2 << endl;
+ //Write a code
+
+
   return 0;
 }`,
     stdin: "Coder",
@@ -527,7 +522,7 @@ function CodeCompiler({
     setIsSubmitting(true);
     updateVerificationState({
       status: "running",
-      message: "Submitting solution...",
+      message: "Submitting...",
     });
 
     try {

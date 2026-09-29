@@ -6,7 +6,8 @@ import ContactUs from "./Components/LandingPage/Contctus.jsx";
 import Participates from "./Components/LandingPage/Participate.jsx";
 import Compiler from "./Components/LandingPage/Compiler.jsx";
 import Problems from "./Components/Problems.jsx";
-import Practice from "./Components/Practice/Practices.jsx";
+// import Practice from "./Components/Practice/Practices.jsx";
+import Practice from "./Components/Practicesheet.jsx";
 import Game from "./Components/Game.jsx";
 import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx";
 
@@ -1300,7 +1301,8 @@ function App() {
       <Route path="/game" element={<Game></Game>} />
       <Route path="/all-problem" element={<Problems />} />
       <Route path="/startquiz" element={<StartQuiz1 />} />
-      <Route path="/problem-sheet" element={<Problemsheet/>} />
+      <Route path="/practice-sheet" element={<Practice/>} />
+      <Route path="/dsa-problem-sheet" element={<Problemsheet/>} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
