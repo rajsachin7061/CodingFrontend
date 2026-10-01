@@ -6,7 +6,7 @@ import "./Questiondetail.css";
 const CodeCompiler = lazy(() => import("./CodeCompiler.jsx"));
 
 const tabs = ["Statement", "Submissions", "Solution", "Hints", "AI Help"];
-const customActions = ["Visualize Code", "Run", "Submit", "Next"];
+// const customActions = ["Visualize Code", "Run", "Submit", "Next"];
 const starterLanguages = [
   ["java", "Java"],
   ["cpp", "C++"],
@@ -879,7 +879,7 @@ const Questiondetail = ({
             />
           </Suspense>
 
-          <div className="custom-trigger-actions" aria-label="Code actions">
+          {/* <div className="custom-trigger-actions" aria-label="Code actions">
             {customActions.map((action) => (
               <button
                 className={`custom-action ${action.toLowerCase().replace(/\s+/g, "-")}`}
@@ -891,49 +891,49 @@ const Questiondetail = ({
                 {action}
               </button>
             ))}
-          </div>
+          </div> */}
         </aside>
       </section>
 
-      {isCustomInputOpen && (
-        <div
-          className="custom-input-overlay"
-          onClick={closeCustomInput}
-          role="presentation"
-        >
-          <section
-            aria-label="Custom input"
-            aria-modal="true"
-            className="custom-input-panel"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <div className="custom-input-header">
-              <h2>Test against Custom Input</h2>
-              <button
-                aria-label="Close custom input"
-                className="custom-close-button"
-                onClick={closeCustomInput}
-                type="button"
-              >
-                x
-              </button>
-            </div>
-            <textarea aria-label="Custom input" rows={6} />
-            <div className="custom-input-actions">
-              {customActions.map((action) => (
-                <button
-                  className={`custom-action ${action.toLowerCase().replace(/\s+/g, "-")}`}
-                  key={action}
-                  type="button"
-                >
-                  {action}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
+      {/* {isCustomInputOpen && ( */}
+        {/* // <div */}
+        {/* //   className="custom-input-overlay"
+        //   onClick={closeCustomInput}
+        //   role="presentation" */}
+        {/* // >
+        //   <section */}
+        {/* //     aria-label="Custom input"
+        //     aria-modal="true"
+        //     className="custom-input-panel"
+        //     onClick={(event) => event.stopPropagation()}
+        //     role="dialog" */}
+        {/* //   > */}
+        {/* //     <div className="custom-input-header">
+        //       <h2>Test against Custom Input</h2>
+        //       <button */}
+        {/* //         aria-label="Close custom input"
+        //         className="custom-close-button"
+        //         onClick={closeCustomInput}
+        //         type="button" */}
+        {/* //       >
+        //         x
+        //       </button> */}
+        {/* //     </div> */}
+        {/* //     <textarea aria-label="Custom input" rows={6} />
+        //     <div className="custom-input-actions">
+        //       {customActions.map((action) => ( */}
+        {/* //         <button */}
+        {/* //           className={`custom-action ${action.toLowerCase().replace(/\s+/g, "-")}`}
+        //           key={action}
+        //           type="button"
+        //         >
+        //           {action}
+        //         </button> */}
+        {/* //       ))} */}
+        {/* //     </div> */}
+        {/* //   </section> */}
+        {/* // </div> */}
+      {/* // )} */}
     </main>
   );
 };

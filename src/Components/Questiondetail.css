@@ -84,7 +84,7 @@
   flex: 0 0 auto;
   gap: 16px;
   justify-content: space-between;
-  padding: 14px 22px;
+  padding: 5px 13px;
   position: relative;
   z-index: 5;
 }
@@ -224,10 +224,10 @@
 .problem-layout {
   display: grid;
   flex: 1 1 auto;
-  gap: 16px;
+  gap: 5px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 0;
-  padding: 16px;
+  padding: 3px;
 }
 
 .contest-problem-layout {

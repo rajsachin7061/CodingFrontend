@@ -5,9 +5,9 @@ import logoImg from "./imaiges/logo.png";
 import webImg from "./imaiges/landingImaige.png";
 import contestImg from "./imaiges/contest.png";
 import quizeImg from "./imaiges/quize.png";
-import Slider from "./Slider";
+// import Slider from "./Slider";
 import "./landing.css";
-import "./slider.css";
+// import "./slider.css";
 import Footer from "./Footer.jsx";
 
 const Page = ({ onLogin, onSignup }) => {
@@ -215,9 +215,9 @@ const Page = ({ onLogin, onSignup }) => {
           Sniper for Developers
         </div>
 
-        <section id="site-content" className="bg-[#D1D3D8]">
+        {/* <section id="site-content" className="bg-[#D1D3D8]">
           <Slider />
-        </section>
+        </section> */}
 
         {/* Active Contests */}
         <div className="bg-white py-10">
