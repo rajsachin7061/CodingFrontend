@@ -78,8 +78,8 @@ const Page = ({ onLogin, onSignup }) => {
         <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
           <ul className="nav-links">
             <li onClick={closeMenu}>Course</li>
-            <li onClick={closeMenu}>Practice</li>
-            <li onClick={closeMenu}>Problem</li>
+            <li onClick={closeMenu}><a href="/practice-sheet">Practice</a></li>
+            <li onClick={closeMenu}><a href="/dsa-problem-sheet">Problem</a></li>
             <li onClick={closeMenu}>
               <a href="/all-game">Game</a>
               </li>

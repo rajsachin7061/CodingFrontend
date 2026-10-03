@@ -175,6 +175,68 @@ const runApiFetch = async (path, options) => {
   return fetch(fallbackApiUrl(path), options);
 };
 
+const readProgressiveVerification = async (response, onEvent) => {
+  if (!response.body) {
+    throw new Error(
+      "Progressive verification is not supported by this browser.",
+    );
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult = null;
+
+  const processLine = (line) => {
+    if (!line.trim()) {
+      return;
+    }
+
+    const event = JSON.parse(line);
+    if (!event.type && Object.hasOwn(event, "passedCount")) {
+      finalResult = event;
+      return;
+    }
+
+    onEvent(event);
+    if (event.type === "complete") {
+      finalResult = event;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    lines.forEach(processLine);
+
+    if (done) {
+      break;
+    }
+  }
+
+  processLine(buffer);
+  if (!finalResult) {
+    throw new Error(
+      "Verification ended before all test results were received.",
+    );
+  }
+
+  return finalResult;
+};
+
+const updateVerificationProgress = (event, updateState) => {
+  if (event.type === "test-started") {
+    updateState({ currentTest: Number(event.testIndex) || 0 });
+  } else if (event.type === "test-completed") {
+    updateState((current) => ({
+      passed: event.passed ? current.passed + 1 : current.passed,
+      currentTest: 0,
+    }));
+  }
+};
+
 const getCssPreview = (code) => `<!doctype html>
 <html>
   <head>
@@ -235,6 +297,7 @@ function CodeCompiler({
     status: "idle",
     passed: 0,
     total: 0,
+    currentTest: 0,
     message: "",
     canSubmit: false,
   });
@@ -294,7 +357,10 @@ function CodeCompiler({
 
   const updateVerificationState = (nextState) => {
     setVerificationState((current) => {
-      const nextValue = { ...current, ...nextState };
+      const nextValue = {
+        ...current,
+        ...(typeof nextState === "function" ? nextState(current) : nextState),
+      };
       onVerificationStateChange?.(nextValue);
       return nextValue;
     });
@@ -455,6 +521,7 @@ function CodeCompiler({
       status: "running",
       passed: 0,
       total: totalCases,
+      currentTest: 0,
       message: "Verifying against hidden test cases...",
       canSubmit: false,
     });
@@ -465,19 +532,23 @@ function CodeCompiler({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ language, code }),
+          body: JSON.stringify({ language, code, progressive: true }),
         },
       );
-      const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
         throw new Error(payload.message || "Could not verify this solution.");
       }
 
-      const passed = Number(payload.passedCount || 0);
-      const total = Number(payload.totalCount || 0);
+      const finalResult = await readProgressiveVerification(response, (event) =>
+        updateVerificationProgress(event, updateVerificationState),
+      );
+
+      const passed = Number(finalResult.passedCount || 0);
+      const total = Number(finalResult.totalCount || 0);
       const allPassed = Boolean(
-        total > 0 && payload.allPassed && passed === total,
+        total > 0 && finalResult.allPassed && passed === total,
       );
       const nextMessage = allPassed
         ? "✅ All test cases verified successfully.\nYou can now submit your solution."
@@ -487,6 +558,7 @@ function CodeCompiler({
         status: allPassed ? "passed" : "failed",
         passed,
         total,
+        currentTest: 0,
         message: nextMessage,
         canSubmit: allPassed,
       });
@@ -495,6 +567,7 @@ function CodeCompiler({
         status: "failed",
         passed: 0,
         total: totalCases,
+        currentTest: 0,
         message:
           "❌ Test cases failed.\nPlease check your logic and try again.",
         canSubmit: false,
@@ -703,6 +776,13 @@ function CodeCompiler({
                 ? `Passed: ${verificationState.passed} / ${verificationState.total} test cases`
                 : "Verification pending."}
             </span>
+            {verificationState.status === "running" &&
+              verificationState.currentTest > 0 && (
+                <span style={{ color: "#334155", fontSize: "0.95rem" }}>
+                  Testing: {verificationState.currentTest} /{" "}
+                  {verificationState.total}
+                </span>
+              )}
           </div>
         )}
 
