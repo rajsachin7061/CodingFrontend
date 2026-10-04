@@ -58,7 +58,7 @@ const Problemsheet = () => {
         <div className="grid gap-4">
           {problems.map((problem, index) => (
             <a
-              className="group flex min-h-28 items-center gap-5 rounded-3xl border border-slate-200 bg-slate-50/90 px-6 py-5 transition hover:border-violet-300 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.12)] sm:px-7"
+              className="group flex min-h-10 items-center gap-5 rounded-3xl border border-slate-200 bg-slate-50/90 px-6 py-5 transition hover:border-violet-300 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.12)] sm:px-5"
               href={`/problem/${problem.id}`}
               key={problem.id}
             >

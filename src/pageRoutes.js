@@ -6,6 +6,7 @@ export const pageRoutes = {
   register: "/register",
   reset: "/reset-password",
   quiz: "/quiz",
+  quizJava: "/quiz/java",
   contest: "/contest",
   compiler: "/compiler",
   profile: "/profile",

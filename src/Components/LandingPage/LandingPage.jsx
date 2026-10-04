@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { pageRoutes } from "../../pageRoutes.js";
 import logoImg from "./imaiges/logo.png";
+import javaImg from "./imaiges/Java_logo_PNG1.png";
+import pythonImg from "./imaiges/Python-logo.png";
+import cppImg from "./imaiges/c++-logo.png";
+import htmlImg from "./imaiges/javascript-logo.png";
+import cssImg from "./imaiges/css.png";
 import webImg from "./imaiges/landingImaige.png";
 import contestImg from "./imaiges/contest.png";
 import quizeImg from "./imaiges/quize.png";
@@ -124,6 +129,10 @@ const Page = ({ onLogin, onSignup }) => {
           </div>
         </div>
 
+
+
+
+
         {/* Slider */}
         <div className="w-full flex justify-center items-center py-10 bg-[#D1D3D8]">
           <div className="relative w-[95%] md:w-[85%] lg:w-[75%]">
@@ -152,6 +161,115 @@ const Page = ({ onLogin, onSignup }) => {
             </button>
           </div>
         </div>
+
+          {/* //popular Course */}
+      
+<section className="popular-courses">
+  <div className="courses-header">
+    <div>
+      <div className="courses-label">
+        <span>♟</span> POPULAR COURSES
+      </div>
+
+      <h2>
+        Start Your <span>Learning Journey</span>
+      </h2>
+    </div>
+
+    <button className="view-courses-btn">
+      View All Courses <span>→</span>
+    </button>
+  </div>
+
+  <div className="courses-grid">
+
+   <a href="/practice/java">
+    <div className="course-card">
+      <div className="course-image java-bg">
+        <span className="course-icon"><img src={javaImg} alt="web" /></span>
+      </div>
+      
+
+      <h3>Java</h3>
+      <p>Beginner to Advanced</p>
+
+      <div className="learners">
+        <span>♟</span> 12K+ learners
+      </div>
+    </div>
+    </a>
+
+<a href="/practice/python">
+    <div className="course-card">
+      <div className="course-image python-bg">
+        <span className="course-icon"><img src={pythonImg} alt="web" /></span>
+      </div>
+
+      <h3>Python</h3>
+      <p>Beginner to Advanced</p>
+
+      <div className="learners">
+        <span>♟</span> 18K+ learners
+      </div>
+    </div>
+    </a>
+
+   
+   <a href="/practice/cpp">
+   <div className="course-card">
+      <div className="course-image cpp-bg">
+        <span className="cpp-icon"><img src={cppImg} alt="web" /></span>
+      </div>
+
+      <h3>C++</h3>
+      <p>From Basics to Pro</p>
+
+      <div className="learners">
+        <span>♟</span> 8K+ learners
+      </div>
+    </div>
+    </a>
+
+
+
+
+   <a href = "/practice/javascript">
+    <div className="course-card">
+      <div className="course-image react-bg">
+        <span className="react-icon"><img src={htmlImg} alt="web" /></span>
+      </div>
+
+      <h3>JavaScript</h3>
+      <p>Backend Development</p>
+
+      
+
+      <div className="learners">
+        <span>♟</span> 9K+ learners
+      </div>
+    </div>
+    </a>
+
+  
+    <div className="course-card">
+      <div className="course-image cpp-bg">
+        <span className="cpp-icon"><img src={cssImg} alt="web" /></span>
+      </div>
+
+      <h3>CSS</h3>
+      <p>From Basics to Pro</p>
+
+      <div className="learners">
+        <span>♟</span> 8K+ learners
+      </div>
+    </div>
+    
+   
+  </div>
+ 
+</section>
+
+
 
         {/* Feature Cards */}
         <div className="bg-white py-10">
@@ -209,11 +327,7 @@ const Page = ({ onLogin, onSignup }) => {
           </div>
         </div>
 
-        {/* Hero Section */}
-        <div className="p-0 py-0 text-indigo-700 font-bold text-4xl bg-[#D1D3D8] text-center">
-          Code Smart <br />
-          Sniper for Developers
-        </div>
+        
 
         {/* <section id="site-content" className="bg-[#D1D3D8]">
           <Slider />

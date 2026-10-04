@@ -1301,13 +1301,14 @@ function App() {
       <Route path="/game" element={<Game></Game>} />
       <Route path="/all-problem" element={<Problems />} />
       <Route path="/startquiz" element={<StartQuiz1 />} />
-      <Route path="/practice-sheet" element={<Practice/>} />
-      <Route path="/dsa-problem-sheet" element={<Problemsheet/>} />
+      <Route path="/practice-sheet" element={<Practice />} />
+      <Route path="/dsa-problem-sheet" element={<Problemsheet />} />
 
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />
       <Route path={pageRoutes.quiz} element={currentPage} />
+      <Route path={pageRoutes.quizJava} element={currentPage} />
       <Route path={pageRoutes.contest} element={currentPage} />
       <Route path={pageRoutes.compiler} element={currentPage} />
       <Route path="/quiz/:categorySlug" element={currentPage} />
@@ -1317,7 +1318,7 @@ function App() {
       <Route path={pageRoutes.resume} element={currentPage} />
       <Route path={pageRoutes.logout} element={currentPage} />
       <Route path={pageRoutes.admin} element={currentPage} />
- 
+
       <Route
         path="*"
         element={
