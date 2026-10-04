@@ -74,7 +74,8 @@ function Quiz({
   const [learningPaths, setLearningPaths] = useState([]);
   const [learningPathsState, setLearningPathsState] = useState("loading");
 
-  const selectedCategory = routeCategory || localCategory;
+  const selectedCategory =
+    routeCategory || ((contestLanding || quizLanding) && localCategory) || "";
   const isContest = selectedCategory === CONTEST_CATEGORY;
   const isConfiguredQuiz = selectedCategory === QUIZ_CATEGORY;
   const started = Boolean(selectedCategory);
@@ -258,7 +259,6 @@ function Quiz({
   }, [selectedCategory, contestDurationSeconds]);
 
   const startPractice = (category) => {
-    setLocalCategory(category);
     onSelectCategory(category);
   };
 
