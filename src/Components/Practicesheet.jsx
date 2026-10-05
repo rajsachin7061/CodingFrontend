@@ -5,7 +5,7 @@ const practiceLanguages = [
   {
     name: "Java",
     icon: "☕",
-    questions: 88,
+    questions: 164,
     color: "from-orange-50 to-orange-100",
     iconBg: "bg-orange-100",
     description: "Master Java programming",
@@ -14,7 +14,7 @@ const practiceLanguages = [
   {
     name: "C++",
     icon: "⚡",
-    questions: 2,
+    questions: 110,
     color: "from-blue-50 to-blue-100",
     iconBg: "bg-blue-100",
     description: "Practice modern C++",
@@ -23,7 +23,7 @@ const practiceLanguages = [
   {
     name: "Python",
     icon: "🐍",
-    questions: 0,
+    questions: 16,
     color: "from-green-50 to-green-100",
     iconBg: "bg-green-100",
     description: "Learn Python programming",
@@ -66,7 +66,7 @@ const Practice = () => {
         {/* Header */}
         <div className="mb-10 text-center">
           <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-600">
-            Practice Zone
+            Practice Sheet
           </span>
 
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-950 sm:text-5xl">
@@ -89,14 +89,14 @@ const Practice = () => {
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="text-2xl font-extrabold text-blue-600">92</p>
+            <p className="text-2xl font-extrabold text-blue-600">500+</p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
               Questions
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <p className="text-2xl font-extrabold text-emerald-600">4</p>
+            <p className="text-2xl font-extrabold text-emerald-600">50+</p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
               Active Topics
             </p>
