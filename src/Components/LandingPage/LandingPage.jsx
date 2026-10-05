@@ -1,5 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  FiArrowRight,
+  FiBookOpen,
+  FiCode,
+  FiFolder,
+  FiMenu,
+  FiPlay,
+  FiAward,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
 import { pageRoutes } from "../../pageRoutes.js";
 import logoImg from "./imaiges/logo.png";
 import javaImg from "./imaiges/Java_logo_PNG1.png";
@@ -8,54 +19,10 @@ import cppImg from "./imaiges/c++-logo.png";
 import htmlImg from "./imaiges/javascript-logo.png";
 import cssImg from "./imaiges/css.png";
 import webImg from "./imaiges/landingImaige.png";
-import contestImg from "./imaiges/contest.png";
-import quizeImg from "./imaiges/quize.png";
-// import Slider from "./Slider";
 import "./landing.css";
-// import "./slider.css";
 import Footer from "./Footer.jsx";
 
 const Page = ({ onLogin, onSignup }) => {
-  const images = useMemo(
-    () => [
-      {
-        image: contestImg,
-        name: "contest",
-      },
-      {
-        image: quizeImg,
-        name: "quize",
-      },
-    ],
-    [],
-  );
-
-  const [current, setCurrent] = useState(0);
-
-  // Auto Slide
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % images.length);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [images.length]);
-
-  const nextSlide = () => {
-    setCurrent((prev) => (prev + 1) % images.length);
-  };
-
-  const prevSlide = () => {
-    setCurrent((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const handleExplore = () => {
-    document.getElementById("site-content")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleToggleMenu = () => setMenuOpen((open) => !open);
@@ -64,212 +31,291 @@ const Page = ({ onLogin, onSignup }) => {
   return (
     <div>
       {/* Navbar */}
-      <div className="navbar">
-        <div className="logo-box">
-          <img src={logoImg} alt="web" />
-          {/* <h1 className="logo">Coding Snipers</h1> */}
-        </div>
+      <header className="navbar">
+        <Link
+          className="logo-box"
+          to={pageRoutes.landing}
+          aria-label="CodeSniper home"
+        >
+          <img src={logoImg} alt="CodeSniper" />
+        </Link>
 
         <button
           className="nav-toggle"
           type="button"
           aria-expanded={menuOpen}
-          aria-label="Toggle navigation"
+          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
           onClick={handleToggleMenu}
         >
-          ☰
+          {menuOpen ? (
+            <FiX aria-hidden="true" />
+          ) : (
+            <FiMenu aria-hidden="true" />
+          )}
         </button>
 
         <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
           <ul className="nav-links">
-            <li onClick={closeMenu}>Course</li>
-            <li onClick={closeMenu}><a href="/practice-sheet">Practice</a></li>
-            <li onClick={closeMenu}><a href="/dsa-problem-sheet">Problem</a></li>
-            <li onClick={closeMenu}>
-              <a href="/all-game">Game</a>
-              </li>
-
-            <Link to={pageRoutes.compiler} onClick={closeMenu}>
-              <li>Compiler</li>
-            </Link>
-            <li
-              className="nav-action"
-              onClick={() => {
-                closeMenu();
-                onLogin();
-              }}
-            >
-              <button class="button">Login</button>
+            <li>
+              <a href="#popular-courses" onClick={closeMenu}>
+                Course
+              </a>
             </li>
-            <li
-              className="nav-action"
-              onClick={() => {
-                closeMenu();
-                onSignup();
-              }}
-            >
-              <button class="button">Signup</button>
+            <li>
+              <a href="/practice-sheet" onClick={closeMenu}>
+                Practice
+              </a>
+            </li>
+            <li>
+              <a href="/dsa-problem-sheet" onClick={closeMenu}>
+                Problem
+              </a>
+            </li>
+            <li>
+              <a href="/all-game" onClick={closeMenu}>
+                Game
+              </a>
+            </li>
+            <li>
+              <Link to={pageRoutes.compiler} onClick={closeMenu}>
+                Compiler
+              </Link>
+            </li>
+            <li className="nav-action">
+              <button
+                className="login-button"
+                type="button"
+                onClick={() => {
+                  closeMenu();
+                  onLogin();
+                }}
+              >
+                Login
+              </button>
+            </li>
+            <li className="nav-action">
+              <button
+                className="signup-button"
+                type="button"
+                onClick={() => {
+                  closeMenu();
+                  onSignup();
+                }}
+              >
+                Signup
+              </button>
             </li>
           </ul>
         </div>
-      </div>
-      
+      </header>
 
-      <div className="bg-[#D1D3D8]">
-        <div className="landigepage_imaige">
-          <img src={webImg} alt="web" />
-          <div className="landing_quote">
-            <h1>Code Smart, Build the future</h1>
-            <p>
-              learn programming with real world projects and modern technology.
+      <main>
+        <section className="hero-section" aria-labelledby="hero-title">
+          <div className="hero-content">
+            <div className="hero-badge">
+              <FiCode aria-hidden="true" /> LEARN · PRACTICE · BUILD · GROW
+            </div>
+            <h1 id="hero-title">
+              Learn to Code.
+              <br />
+              Practice Skills.
+              <br />
+              <span>Build Real Projects.</span>
+            </h1>
+            <p className="hero-description">
+              CodeSniper is your place to learn programming, practice coding
+              problems, build real-world projects, and grow your skills from
+              beginner to advanced.
             </p>
-            <button type="button" onClick={handleExplore}>
-              Explore
-            </button>
+            <div className="hero-actions">
+              <a className="hero-primary-button" href="#popular-courses">
+                <FiPlay aria-hidden="true" /> Start Learning{" "}
+                <FiArrowRight aria-hidden="true" />
+              </a>
+              <a className="hero-secondary-button" href="/dsa-problem-sheet">
+                <FiCode aria-hidden="true" /> Explore Problems
+              </a>
+            </div>
+            <div
+              className="hero-highlights"
+              aria-label="What you can do on CodeSniper"
+            >
+              <div>
+                <FiBookOpen aria-hidden="true" />
+                <span>
+                  <strong>Learn</strong>
+                  <small>Structured courses</small>
+                </span>
+              </div>
+              <div>
+                <FiCode aria-hidden="true" />
+                <span>
+                  <strong>Practice</strong>
+                  <small>Coding problems</small>
+                </span>
+              </div>
+              <div>
+                <FiFolder aria-hidden="true" />
+                <span>
+                  <strong>Build</strong>
+                  <small>Real projects</small>
+                </span>
+              </div>
+              <div>
+                <FiAward aria-hidden="true" />
+                <span>
+                  <strong>Compete</strong>
+                  <small>Contests & games</small>
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
 
-
-
-
-
-        {/* Slider */}
-        <div className="w-full flex justify-center items-center py-10 bg-[#D1D3D8]">
-          <div className="relative w-[95%] md:w-[85%] lg:w-[75%]">
+          <div className="hero-visual" aria-label="CodeSniper coding dashboard">
             <img
-              src={images[current].image}
-              alt={images[current].name}
-              className="w-full h-30 sm:h-50 md:h-75 lg:h-75 object-cover rounded-2xl duration-500"
+              className="hero-laptop"
+              src={webImg}
+              alt="CodeSniper coding dashboard displayed on a laptop"
             />
-
-            {/* Left Button */}
-            <button
-              onClick={prevSlide}
-              className="absolute top-1/2 left-3 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full text-2xl flex items-center justify-center"
-              aria-label="Previous slide"
-            >
-              ❮
-            </button>
-
-            {/* Right Button */}
-            <button
-              onClick={nextSlide}
-              className="absolute top-1/2 right-3 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full text-2xl flex items-center justify-center"
-              aria-label="Next slide"
-            >
-              ❯
-            </button>
+            <div className="hero-float-card hero-card-courses">
+              <FiBookOpen aria-hidden="true" />
+              <span>
+                <strong>Structured Courses</strong>
+                <small>From basics to advanced</small>
+              </span>
+            </div>
+            <div className="hero-float-card hero-card-problems">
+              <FiCode aria-hidden="true" />
+              <span>
+                <strong>Practice Problems</strong>
+                <small>Learn by doing</small>
+              </span>
+            </div>
+            <div className="hero-float-card hero-card-projects">
+              <FiFolder aria-hidden="true" />
+              <span>
+                <strong>Real Projects</strong>
+                <small>Build your portfolio</small>
+              </span>
+            </div>
+            <div className="hero-float-card hero-card-contests">
+              <FiAward aria-hidden="true" />
+              <span>
+                <strong>Contests</strong>
+                <small>Challenge yourself</small>
+              </span>
+            </div>
+            <div className="hero-float-card hero-card-community">
+              <FiUsers aria-hidden="true" />
+              <span>
+                <strong>Active Community</strong>
+                <small>Grow together</small>
+              </span>
+            </div>
           </div>
-        </div>
+        </section>
 
-          {/* //popular Course */}
-      
-<section className="popular-courses">
-  <div className="courses-header">
-    <div>
-      <div className="courses-label">
-        <span>♟</span> POPULAR COURSES
-      </div>
+        {/* //popular Course */}
 
-      <h2>
-        Start Your <span>Learning Journey</span>
-      </h2>
-    </div>
+        <section className="popular-courses" id="popular-courses">
+          <div className="courses-header">
+            <div>
+              <div className="courses-label">
+                <span>♟</span> POPULAR COURSES
+              </div>
 
-    <button className="view-courses-btn">
-      View All Courses <span>→</span>
-    </button>
-  </div>
+              <h2>
+                Start Your <span>Learning Journey</span>
+              </h2>
+            </div>
 
-  <div className="courses-grid">
+            <a className="view-courses-btn" href="/practice-sheet">
+              View All Courses <FiArrowRight aria-hidden="true" />
+            </a>
+          </div>
 
-   <a href="/practice/java">
-    <div className="course-card">
-      <div className="course-image java-bg">
-        <span className="course-icon"><img src={javaImg} alt="web" /></span>
-      </div>
-      
+          <div className="courses-grid">
+            <a className="course-card" href="/practice/java">
+              <div className="course-image java-bg">
+                <img src={javaImg} alt="Java" />
+              </div>
+              <div className="course-card-content">
+                <h3>Java</h3>
+                <p>Beginner to Advanced</p>
+                <div className="learners">
+                  <FiUsers aria-hidden="true" /> 12,450 learners
+                </div>
+                <span className="open-course-button">
+                  Open Course <FiArrowRight aria-hidden="true" />
+                </span>
+              </div>
+            </a>
 
-      <h3>Java</h3>
-      <p>Beginner to Advanced</p>
+            <a className="course-card" href="/practice/python">
+              <div className="course-image python-bg">
+                <img src={pythonImg} alt="Python" />
+              </div>
+              <div className="course-card-content">
+                <h3>Python</h3>
+                <p>Beginner to Advanced</p>
+                <div className="learners">
+                  <FiUsers aria-hidden="true" /> 10,820 learners
+                </div>
+                <span className="open-course-button">
+                  Open Course <FiArrowRight aria-hidden="true" />
+                </span>
+              </div>
+            </a>
 
-      <div className="learners">
-        <span>♟</span> 12K+ learners
-      </div>
-    </div>
-    </a>
+            <a className="course-card" href="/practice/cpp">
+              <div className="course-image cpp-bg">
+                <img src={cppImg} alt="C++" />
+              </div>
+              <div className="course-card-content">
+                <h3>C++</h3>
+                <p>From Basics to Pro</p>
+                <div className="learners">
+                  <FiUsers aria-hidden="true" /> 8,640 learners
+                </div>
+                <span className="open-course-button">
+                  Open Course <FiArrowRight aria-hidden="true" />
+                </span>
+              </div>
+            </a>
 
-<a href="/practice/python">
-    <div className="course-card">
-      <div className="course-image python-bg">
-        <span className="course-icon"><img src={pythonImg} alt="web" /></span>
-      </div>
+            <a className="course-card" href="/practice/javascript">
+              <div className="course-image react-bg">
+                <img src={htmlImg} alt="JavaScript" />
+              </div>
+              <div className="course-card-content">
+                <h3>JavaScript</h3>
+                <p>Backend Development</p>
+                <div className="learners">
+                  <FiUsers aria-hidden="true" /> 7,280 learners
+                </div>
+                <span className="open-course-button">
+                  Open Course <FiArrowRight aria-hidden="true" />
+                </span>
+              </div>
+            </a>
 
-      <h3>Python</h3>
-      <p>Beginner to Advanced</p>
-
-      <div className="learners">
-        <span>♟</span> 18K+ learners
-      </div>
-    </div>
-    </a>
-
-   
-   <a href="/practice/cpp">
-   <div className="course-card">
-      <div className="course-image cpp-bg">
-        <span className="cpp-icon"><img src={cppImg} alt="web" /></span>
-      </div>
-
-      <h3>C++</h3>
-      <p>From Basics to Pro</p>
-
-      <div className="learners">
-        <span>♟</span> 8K+ learners
-      </div>
-    </div>
-    </a>
-
-
-
-
-   <a href = "/practice/javascript">
-    <div className="course-card">
-      <div className="course-image react-bg">
-        <span className="react-icon"><img src={htmlImg} alt="web" /></span>
-      </div>
-
-      <h3>JavaScript</h3>
-      <p>Backend Development</p>
-
-      
-
-      <div className="learners">
-        <span>♟</span> 9K+ learners
-      </div>
-    </div>
-    </a>
-
-  
-    <div className="course-card">
-      <div className="course-image cpp-bg">
-        <span className="cpp-icon"><img src={cssImg} alt="web" /></span>
-      </div>
-
-      <h3>CSS</h3>
-      <p>From Basics to Pro</p>
-
-      <div className="learners">
-        <span>♟</span> 8K+ learners
-      </div>
-    </div>
-    
-   
-  </div>
- 
-</section>
-
-
+            <a className="course-card" href="/practice-sheet">
+              <div className="course-image css-bg">
+                <img src={cssImg} alt="CSS" />
+              </div>
+              <div className="course-card-content">
+                <h3>CSS</h3>
+                <p>From Basics to Pro</p>
+                <div className="learners">
+                  <FiUsers aria-hidden="true" /> 6,150 learners
+                </div>
+                <span className="open-course-button">
+                  Open Course <FiArrowRight aria-hidden="true" />
+                </span>
+              </div>
+            </a>
+          </div>
+        </section>
 
         {/* Feature Cards */}
         <div className="bg-white py-10">
@@ -326,8 +372,6 @@ const Page = ({ onLogin, onSignup }) => {
             </div>
           </div>
         </div>
-
-        
 
         {/* <section id="site-content" className="bg-[#D1D3D8]">
           <Slider />
@@ -397,7 +441,7 @@ const Page = ({ onLogin, onSignup }) => {
         </div>
 
         <Footer />
-      </div>
+      </main>
     </div>
   );
 };
