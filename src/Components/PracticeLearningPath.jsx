@@ -174,6 +174,7 @@ export default function PracticeLearningPath() {
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [progressState, setProgressState] = useState({});
+  const [reloadAttempt, setReloadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,6 +186,9 @@ export default function PracticeLearningPath() {
 
       try {
         const languages = await requestJson("/api/practice/languages");
+        if (!Array.isArray(languages.items)) {
+          throw new Error("The server returned an unexpected learning paths response.");
+        }
         const selectedLanguage = (languages.items || []).find((item) => item.slug === languageSlug);
 
         if (!selectedLanguage) {
@@ -192,6 +196,9 @@ export default function PracticeLearningPath() {
         }
 
         const modulePayload = await requestJson(`/api/practice/languages/${encodeURIComponent(languageSlug)}/modules`);
+        if (!Array.isArray(modulePayload.items)) {
+          throw new Error("The server returned an unexpected modules response.");
+        }
         const nextModules = (modulePayload.items || []).map((module, index) => ({
           ...module,
           order: module.order ?? index,
@@ -206,6 +213,9 @@ export default function PracticeLearningPath() {
           const questionPayload = await requestJson(
             `/api/practice/languages/${encodeURIComponent(languageSlug)}/modules/${encodeURIComponent(moduleId)}/questions`,
           );
+          if (!Array.isArray(questionPayload.items)) {
+            throw new Error("The server returned an unexpected questions response.");
+          }
           nextQuestions = questionPayload.items || [];
         }
 
@@ -227,7 +237,7 @@ export default function PracticeLearningPath() {
     return () => {
       cancelled = true;
     };
-  }, [languageSlug, moduleId]);
+  }, [languageSlug, moduleId, reloadAttempt]);
 
   const pathProgress = useMemo(() => {
     const saved = progressState[languageSlug] || {};
@@ -338,6 +348,13 @@ export default function PracticeLearningPath() {
           <span className="learning-empty-state__icon">⚠️</span>
           <h1>Practice unavailable</h1>
           <p>{message}</p>
+          <button
+            className="learning-primary-button"
+            onClick={() => setReloadAttempt((attempt) => attempt + 1)}
+            type="button"
+          >
+            Try again
+          </button>
           <Link className="learning-primary-button" to="/quiz">
             Back to learning paths
           </Link>

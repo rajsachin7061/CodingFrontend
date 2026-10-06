@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import javaCertificateImage from "../Imaige/certificate100.png";
 import UserMenu from "./UserMenu";
 
@@ -41,6 +41,8 @@ function UserDetail({
     resume: user.resume || {},
   });
   const [message, setMessage] = useState("");
+  const [saveLoading, setSaveLoading] = useState(false);
+  const saveInFlight = useRef(false);
   const stats = user.stats || {};
   const contestName = (contestSettings?.contestName || "Weekly Contest").trim();
   const showPublishedLeaderboard = Boolean(contestSettings?.showLeaderboardToUsers);
@@ -112,8 +114,10 @@ function UserDetail({
     reader.readAsDataURL(file);
   };
 
-  const saveProfile = (event) => {
+  const saveProfile = async (event) => {
     event.preventDefault();
+    if (saveInFlight.current) return;
+
     const name = draft.name.trim();
     const username = draft.username.trim();
 
@@ -122,13 +126,22 @@ function UserDetail({
       return;
     }
 
-    onSaveProfile(user.email, {
-      name,
-      username,
-      password: draft.password,
-      photo: draft.photo,
-    });
-    setMessage("Profile updated successfully.");
+    saveInFlight.current = true;
+    setSaveLoading(true);
+    try {
+      await onSaveProfile(user.email, {
+        name,
+        username,
+        password: draft.password,
+        photo: draft.photo,
+      });
+      setMessage("Profile updated successfully.");
+    } catch (error) {
+      setMessage(error?.message || "Could not save profile. Please try again.");
+    } finally {
+      saveInFlight.current = false;
+      setSaveLoading(false);
+    }
   };
 
   const updateResume = (field, value) => {
@@ -141,17 +154,27 @@ function UserDetail({
     }));
   };
 
-  const saveResume = (event) => {
+  const saveResume = async (event) => {
     event.preventDefault();
+    if (saveInFlight.current) return;
 
-    onSaveProfile(user.email, {
-      resume: {
-        ...draft.resume,
-        name: draft.resume.name || user.name,
-        email: draft.resume.email || user.email,
-      },
-    });
-    setMessage("Resume saved successfully.");
+    saveInFlight.current = true;
+    setSaveLoading(true);
+    try {
+      await onSaveProfile(user.email, {
+        resume: {
+          ...draft.resume,
+          name: draft.resume.name || user.name,
+          email: draft.resume.email || user.email,
+        },
+      });
+      setMessage("Resume saved successfully.");
+    } catch (error) {
+      setMessage(error?.message || "Could not save resume. Please try again.");
+    } finally {
+      saveInFlight.current = false;
+      setSaveLoading(false);
+    }
   };
 
   const downloadJavaCertificate = () => {
@@ -323,10 +346,18 @@ function UserDetail({
               />
             </label>
 
-            {message && <p className="form-message">{message}</p>}
+            {message && (
+              <p className="form-message" role="status">
+                {message}
+              </p>
+            )}
 
-            <button className="primary-action" type="submit">
-              Save Profile
+            <button
+              className="primary-action"
+              disabled={saveLoading}
+              type="submit"
+            >
+              {saveLoading ? "Saving profile..." : "Save Profile"}
             </button>
           </form>
         )}
@@ -424,10 +455,18 @@ function UserDetail({
                 </label>
               ))}
 
-              {message && <p className="form-message">{message}</p>}
+              {message && (
+                <p className="form-message" role="status">
+                  {message}
+                </p>
+              )}
 
-              <button className="primary-action" type="submit">
-                Save Resume
+              <button
+                className="primary-action"
+                disabled={saveLoading}
+                type="submit"
+              >
+                {saveLoading ? "Saving resume..." : "Save Resume"}
               </button>
             </form>
 

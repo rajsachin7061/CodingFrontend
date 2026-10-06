@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Courses from "./Components/Courses/Course.jsx";
 import AboutUs from "./Components/LandingPage/Aboutus.jsx";
 import PrivacyPolicy from "./Components/LandingPage/privacyPolicy.jsx";
@@ -43,6 +43,8 @@ import Thanks from "./Components/LandingPage/Thanku.jsx";
 import Questiondetail from "./Components/Questiondetail.jsx";
 import PracticeLearningPath from "./Components/PracticeLearningPath.jsx";
 import Problemsheet from "./Components/Problemsheet.jsx";
+import LoadingState from "./Components/LoadingState.jsx";
+import { apiFetch } from "./api";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -51,15 +53,6 @@ const SESSION_KEY = "onlineQuizCurrentUser";
 const QUESTIONS_KEY = "onlineQuizQuestions";
 const ADMIN_SESSION_KEY = "onlineQuizAdminSession";
 const THEME_KEY = "onlineQuizTheme";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
-  /\/+$/,
-  "",
-);
-const apiUrl = (path) => `${API_BASE_URL}${path}`;
-
-const apiFetch = async (path, options) => {
-  return fetch(apiUrl(path), options);
-};
 
 const makeUsername = (name = "", email = "") => {
   const base = name.trim() || email.split("@")[0] || "user";
@@ -69,16 +62,6 @@ const makeUsername = (name = "", email = "") => {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "")
       .slice(0, 18) || "user"
-  );
-};
-
-const makeLocalOtp = () => String(Math.floor(100000 + Math.random() * 900000));
-
-const findLocalUserByEmail = (email) => {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  return (
-    getStoredUsers().find((user) => user.email === normalizedEmail) || null
   );
 };
 
@@ -158,10 +141,6 @@ const getStoredUsers = () => {
   }
 };
 
-const saveStoredUsers = (nextUsers) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(nextUsers.map(normalizeUser)));
-};
-
 const getStoredSession = () => {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY));
@@ -207,6 +186,11 @@ function App() {
   const [users, setUsers] = useState(getStoredUsers);
   const [questions, setQuestions] = useState(getStoredQuestions);
   const [theme, setTheme] = useState(getStoredTheme);
+  const [remoteDataStatus, setRemoteDataStatus] = useState({
+    status: "loading",
+    message: "",
+  });
+  const [remoteDataAttempt, setRemoteDataAttempt] = useState(0);
   const [contestSettings, setContestSettings] = useState(
     defaultContestSettings,
   );
@@ -218,6 +202,8 @@ function App() {
     password: "",
   });
   const [message, setMessage] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const authRequestInFlight = useRef(false);
   const [adminForm, setAdminForm] = useState({ username: "", password: "" });
   const [adminMessage, setAdminMessage] = useState("");
   const [resetStep, setResetStep] = useState("email");
@@ -242,35 +228,34 @@ function App() {
     const response = await apiFetch("/api/questions");
 
     if (!response.ok) {
-      throw new Error("Could not load questions from database.");
+      throw new Error("Unable to load quiz questions. Please try again.");
     }
 
     const apiQuestions = await response.json();
-    return Array.isArray(apiQuestions)
-      ? apiQuestions.map((question) => ({
-          ...question,
-          category: question.category || defaultQuizCategory,
-          section: question.section || "both",
-        }))
-      : [];
+    if (!Array.isArray(apiQuestions)) {
+      throw new Error("The server returned an unexpected questions response.");
+    }
+
+    return apiQuestions.map((question) => ({
+      ...question,
+      category: question.category || defaultQuizCategory,
+      section: question.section || "both",
+    }));
   };
 
   const fetchUsersFromApi = async () => {
     const response = await apiFetch("/api/users");
 
     if (!response.ok) {
-      throw new Error("Could not load users from database.");
+      throw new Error("Unable to load user data. Please try again.");
     }
 
     const apiUsers = await response.json();
-    return Array.isArray(apiUsers) ? apiUsers.map(normalizeUser) : [];
-  };
+    if (!Array.isArray(apiUsers)) {
+      throw new Error("The server returned an unexpected users response.");
+    }
 
-  const syncUsersFromApi = async () => {
-    const apiUsers = await fetchUsersFromApi();
-    localStorage.setItem(USERS_KEY, JSON.stringify(apiUsers));
-    setUsers(apiUsers);
-    return apiUsers;
+    return apiUsers.map(normalizeUser);
   };
 
   const updateForm = (event) => {
@@ -310,10 +295,14 @@ function App() {
     let isCancelled = false;
 
     const loadRemoteData = async () => {
+      setRemoteDataStatus({ status: "loading", message: "" });
+
       try {
-        const apiUsers = await fetchUsersFromApi();
-        const apiQuestions = await fetchQuestionsFromApi();
-        const apiContestSettings = await fetchContestSettingsFromApi();
+        const [apiUsers, apiQuestions, apiContestSettings] = await Promise.all([
+          fetchUsersFromApi(),
+          fetchQuestionsFromApi(),
+          fetchContestSettingsFromApi(),
+        ]);
 
         if (!isCancelled) {
           localStorage.setItem(USERS_KEY, JSON.stringify(apiUsers));
@@ -327,9 +316,17 @@ function App() {
         if (!isCancelled) {
           setContestSettings(apiContestSettings);
           setQuizSettings({ ...defaultQuizSettings, ...apiContestSettings });
+          setRemoteDataStatus({ status: "ready", message: "" });
         }
-      } catch {
-        // Keep local fallback when API is unavailable.
+      } catch (error) {
+        if (!isCancelled) {
+          setRemoteDataStatus({
+            status: "error",
+            message:
+              error?.message ||
+              "Unable to load application data. Please try again.",
+          });
+        }
       }
     };
 
@@ -338,7 +335,7 @@ function App() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [remoteDataAttempt]);
 
   const closeAdminPanel = () => {
     const fallbackPage = currentUser ? "quiz" : "login";
@@ -387,60 +384,32 @@ function App() {
   };
 
   const identifyUser = (user) => {
-    const sessionUser = { name: user.name, email: user.email };
+    const normalizedUser = normalizeUser(user);
+    const sessionUser = {
+      name: normalizedUser.name,
+      email: normalizedUser.email,
+    };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
+    setUsers((currentUsers) => [
+      normalizedUser,
+      ...currentUsers.filter((item) => item.email !== normalizedUser.email),
+    ]);
     setCurrentUser(sessionUser);
     goToPage("quiz");
   };
 
-  const registerLocalUser = ({ name, email, password }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const existingUsers = getStoredUsers();
-
-    if (existingUsers.some((user) => user.email === normalizedEmail)) {
-      setMessage("This email is already registered.");
-      return null;
-    }
-
-    const newUser = normalizeUser({
-      id: `local-${Date.now()}`,
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      username: makeUsername(name, normalizedEmail),
-      stats: getDefaultStats(),
-      resume: getDefaultResume({ name, email: normalizedEmail }),
-    });
-    const nextUsers = [...existingUsers, newUser];
-
-    saveStoredUsers(nextUsers);
-    setUsers(nextUsers);
-    return newUser;
-  };
-
-  const loginLocalUser = ({ email, password }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const localUsers = getStoredUsers();
-    const user = localUsers.find(
-      (item) => item.email === normalizedEmail && item.password === password,
-    );
-
-    if (!user) {
-      setMessage("Email or password is incorrect.");
-      return null;
-    }
-
-    if (user.blocked) {
-      setMessage("Your account is blocked. Please contact the admin.");
-      return null;
-    }
-
-    setUsers(localUsers);
-    return user;
+  const completeAuthentication = (user) => {
+    authRequestInFlight.current = false;
+    setAuthLoading(false);
+    identifyUser(user);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (authRequestInFlight.current) {
+      return;
+    }
 
     const name = form.name.trim();
     const email = form.email.trim().toLowerCase();
@@ -451,8 +420,12 @@ function App() {
       return;
     }
 
-    if (mode === "register") {
-      try {
+    authRequestInFlight.current = true;
+    setAuthLoading(true);
+    setMessage("");
+
+    try {
+      if (mode === "register") {
         const response = await apiFetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -468,36 +441,36 @@ function App() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          if (response.status >= 500) {
-            const localUser = registerLocalUser({ name, email, password });
-
-            if (localUser) {
-              identifyUser(localUser);
-            }
-            return;
-          }
-
-          setMessage(errorData.message || "Could not create account.");
+          setMessage(
+            response.status >= 500
+              ? "Unable to connect to server. Please try again."
+              : errorData.message || "Could not create account.",
+          );
           return;
         }
 
-        const apiUsers = await syncUsersFromApi();
-        const newUser = apiUsers.find((user) => user.email === email);
+        const data = await response.json();
+        let registeredUser = data?.user
+          ? normalizeUser({ ...data.user, password })
+          : null;
 
-        if (newUser) {
-          identifyUser(newUser);
+        if (!registeredUser?.email) {
+          const apiUsers = await fetchUsersFromApi();
+          registeredUser =
+            apiUsers.find((user) => user.email === email) || null;
         }
-      } catch {
-        const localUser = registerLocalUser({ name, email, password });
 
-        if (localUser) {
-          identifyUser(localUser);
+        if (!registeredUser?.email) {
+          setMessage(
+            "Your account was created, but we could not load it. Please log in.",
+          );
+          return;
         }
+
+        completeAuthentication(registeredUser);
+        return;
       }
-      return;
-    }
 
-    try {
       const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -506,35 +479,32 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        if (response.status >= 500) {
-          const localUser = loginLocalUser({ email, password });
-
-          if (localUser) {
-            identifyUser(localUser);
-          }
-          return;
-        }
-
-        setMessage(errorData.message || "Email or password is incorrect.");
+        setMessage(
+          response.status >= 500
+            ? "Unable to connect to server. Please try again."
+            : response.status === 401
+              ? "Invalid email or password."
+              : errorData.message || "Could not log in right now. Please try again.",
+        );
         return;
       }
 
       const data = await response.json();
-      const loggedInUser = normalizeUser(data.user || {});
+      const loggedInUser = data?.user ? normalizeUser(data.user) : null;
 
       if (!loggedInUser?.email) {
-        setMessage("Could not log in right now. Please try again.");
+        setMessage("The server returned an invalid login response.");
         return;
       }
 
-      await syncUsersFromApi();
-      identifyUser(loggedInUser);
-    } catch {
-      const localUser = loginLocalUser({ email, password });
-
-      if (localUser) {
-        identifyUser(localUser);
-      }
+      completeAuthentication(loggedInUser);
+    } catch (error) {
+      setMessage(
+        error?.message || "Unable to connect to server. Please try again.",
+      );
+    } finally {
+      authRequestInFlight.current = false;
+      setAuthLoading(false);
     }
   };
 
@@ -555,6 +525,10 @@ function App() {
   const handleSendResetOtp = async (event) => {
     event.preventDefault();
 
+    if (authRequestInFlight.current) {
+      return;
+    }
+
     const email = form.email.trim().toLowerCase();
 
     if (!email) {
@@ -562,8 +536,9 @@ function App() {
       return;
     }
 
-    const localUser = findLocalUserByEmail(email);
-
+    authRequestInFlight.current = true;
+    setAuthLoading(true);
+    setMessage("");
     try {
       const response = await apiFetch("/api/auth/request-password-reset", {
         method: "POST",
@@ -573,69 +548,11 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-
-        if ((response.status === 404 || response.status >= 500) && localUser) {
-          try {
-            await apiFetch("/api/users", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: localUser.name || email.split("@")[0],
-                email,
-                password: localUser.password,
-                username:
-                  localUser.username || makeUsername(localUser.name, email),
-                stats: localUser.stats || getDefaultStats(),
-                resume: localUser.resume || getDefaultResume(localUser),
-              }),
-            });
-
-            const retryResponse = await apiFetch(
-              "/api/auth/request-password-reset",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-              },
-            );
-
-            if (!retryResponse.ok) {
-              const retryErrorData = await retryResponse
-                .json()
-                .catch(() => ({}));
-              setMessage(
-                retryErrorData.message || "Could not send OTP right now.",
-              );
-              return;
-            }
-
-            setResetRequest({ email, mode: "api" });
-            setResetStep("otp");
-            setForm((current) => ({
-              ...current,
-              email,
-              otp: "",
-              password: "",
-            }));
-            setMessage(`OTP sent to ${email}. Please check your inbox.`);
-            return;
-          } catch {
-            const fallbackOtp = makeLocalOtp();
-
-            setResetRequest({ email, otp: fallbackOtp, mode: "local" });
-            setResetStep("otp");
-            setForm((current) => ({
-              ...current,
-              email,
-              otp: "",
-              password: "",
-            }));
-            setMessage("OTP sent to your email. Please check your inbox.");
-            return;
-          }
-        }
-
-        setMessage(errorData.message || "Could not send OTP right now.");
+        setMessage(
+          response.status >= 500
+            ? "Unable to connect to server. Please try again."
+            : errorData.message || "Could not send OTP right now.",
+        );
         return;
       }
 
@@ -643,18 +560,13 @@ function App() {
       setResetStep("otp");
       setForm((current) => ({ ...current, email, otp: "", password: "" }));
       setMessage(`OTP sent to ${email}. Please check your inbox.`);
-    } catch {
-      if (localUser) {
-        const fallbackOtp = makeLocalOtp();
-
-        setResetRequest({ email, otp: fallbackOtp, mode: "local" });
-        setResetStep("otp");
-        setForm((current) => ({ ...current, email, otp: "", password: "" }));
-        setMessage("OTP sent to your email. Please check your inbox.");
-        return;
-      }
-
-      setMessage("Could not connect to server. Please try again.");
+    } catch (error) {
+      setMessage(
+        error?.message || "Unable to connect to server. Please try again.",
+      );
+    } finally {
+      authRequestInFlight.current = false;
+      setAuthLoading(false);
     }
   };
 
@@ -662,10 +574,14 @@ function App() {
     const response = await apiFetch("/api/contest-settings");
 
     if (!response.ok) {
-      throw new Error("Could not load contest settings.");
+      throw new Error("Unable to load contest settings. Please try again.");
     }
 
     const settings = await response.json();
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+      throw new Error("The server returned an unexpected settings response.");
+    }
+
     return {
       ...defaultContestSettings,
       ...(settings || {}),
@@ -689,34 +605,13 @@ function App() {
       return;
     }
 
-    if (resetRequest.mode === "local") {
-      if (String(resetRequest.otp) !== otp) {
-        setMessage("OTP is incorrect.");
-        return;
-      }
-
-      const localUsers = getStoredUsers();
-      const userToUpdate = localUsers.find((user) => user.email === email);
-
-      if (!userToUpdate) {
-        setMessage("No local account found for this email.");
-        return;
-      }
-
-      const nextUsers = localUsers.map((user) =>
-        user.email === email ? { ...user, password } : user,
-      );
-
-      saveStoredUsers(nextUsers);
-      setUsers(nextUsers);
-      setResetRequest(null);
-      setResetStep("email");
-      goToPage("login");
-      setForm({ name: "", email, otp: "", password: "" });
-      setMessage("Password updated. Please log in.");
+    if (authRequestInFlight.current) {
       return;
     }
 
+    authRequestInFlight.current = true;
+    setAuthLoading(true);
+    setMessage("");
     try {
       const response = await apiFetch("/api/auth/reset-password", {
         method: "POST",
@@ -726,25 +621,33 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        setMessage(errorData.message || "Could not update password right now.");
+        setMessage(
+          response.status >= 500
+            ? "Unable to connect to server. Please try again."
+            : errorData.message || "Could not update password right now.",
+        );
         return;
       }
 
-      await syncUsersFromApi();
       setResetRequest(null);
       setResetStep("email");
       goToPage("login");
       setForm({ name: "", email, otp: "", password: "" });
       setMessage("Password updated. Please log in.");
-    } catch {
-      setMessage("Could not connect to server. Please try again.");
+    } catch (error) {
+      setMessage(
+        error?.message || "Unable to connect to server. Please try again.",
+      );
+    } finally {
+      authRequestInFlight.current = false;
+      setAuthLoading(false);
     }
   };
 
   const logout = () => {
     localStorage.removeItem(SESSION_KEY);
     setCurrentUser(null);
-    goToPage("login");
+    goToPage("landing");
     setResetStep("email");
     setResetRequest(null);
     setForm({ name: "", email: "", otp: "", password: "" });
@@ -790,7 +693,10 @@ function App() {
       });
 
       if (!response.ok) {
-        return;
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || "Could not delete question. Please try again.",
+        );
       }
 
       const updatedQuestions = await fetchQuestionsFromApi();
@@ -856,7 +762,7 @@ function App() {
     const user = users.find((item) => item.email === email);
 
     if (!user?.id) {
-      return;
+      throw new Error("This account could not be identified. Please refresh.");
     }
 
     const response = await apiFetch(`/api/users/${user.id}`, {
@@ -864,10 +770,15 @@ function App() {
     });
 
     if (!response.ok) {
-      return;
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "Could not delete user. Please try again.",
+      );
     }
 
-    await syncUsersFromApi();
+    setUsers((currentUsers) =>
+      currentUsers.filter((item) => item.email !== email),
+    );
 
     if (currentUser?.email === email) {
       logout();
@@ -878,7 +789,7 @@ function App() {
     const user = users.find((item) => item.email === email);
 
     if (!user?.id) {
-      return;
+      throw new Error("This account could not be identified. Please refresh.");
     }
 
     const response = await apiFetch(`/api/users/${user.id}`, {
@@ -888,11 +799,22 @@ function App() {
     });
 
     if (!response.ok) {
-      return;
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "Could not update user. Please try again.",
+      );
     }
 
-    const apiUsers = await syncUsersFromApi();
-    const savedUser = apiUsers.find((item) => item.email === email);
+    const payload = await response.json();
+    const savedUser = payload?.user ? normalizeUser(payload.user) : null;
+
+    if (!savedUser?.email) {
+      throw new Error("The server returned an unexpected profile response.");
+    }
+
+    setUsers((currentUsers) =>
+      currentUsers.map((item) => (item.email === email ? savedUser : item)),
+    );
 
     if (currentUser?.email === email && savedUser) {
       const updatedSession = { name: savedUser.name, email };
@@ -909,13 +831,13 @@ function App() {
     contestName = "",
   }) => {
     if (!currentUser) {
-      return;
+      throw new Error("Please log in again before saving quiz results.");
     }
 
     const user = users.find((item) => item.email === currentUser.email);
 
     if (!user?.id) {
-      return;
+      throw new Error("Your account could not be identified. Please log in again.");
     }
 
     const stats = {
@@ -1011,9 +933,18 @@ function App() {
       body: JSON.stringify({ stats: nextStats }),
     });
 
-    if (response.ok) {
-      await syncUsersFromApi();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "Could not save quiz results. Please try again.",
+      );
     }
+
+    setUsers((currentUsers) =>
+      currentUsers.map((item) =>
+        item.email === currentUser.email ? { ...item, stats: nextStats } : item,
+      ),
+    );
   };
 
   const toggleUserBlock = async (email) => {
@@ -1021,7 +952,7 @@ function App() {
     const isBlocking = !user?.blocked;
 
     if (!user?.id) {
-      return;
+      throw new Error("This account could not be identified. Please refresh.");
     }
 
     const response = await apiFetch(`/api/users/${user.id}`, {
@@ -1031,10 +962,17 @@ function App() {
     });
 
     if (!response.ok) {
-      return;
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "Could not update user status. Please try again.",
+      );
     }
 
-    await syncUsersFromApi();
+    setUsers((currentUsers) =>
+      currentUsers.map((item) =>
+        item.email === email ? { ...item, blocked: isBlocking } : item,
+      ),
+    );
 
     if (
       currentUser?.email === email &&
@@ -1046,6 +984,49 @@ function App() {
   };
 
   const renderPage = () => {
+    const requiresRemoteData = Boolean(
+      currentUser || (mode === "admin" && isAdminLoggedIn),
+    );
+
+    if (
+      requiresRemoteData &&
+      mode !== "Questiondetail" &&
+      remoteDataStatus.status !== "ready"
+    ) {
+      return (
+        <main className={`quiz-shell ${theme}-theme`}>
+          <LoadingState
+            error={
+              remoteDataStatus.status === "error"
+                ? remoteDataStatus.message
+                : ""
+            }
+            label={
+              ["profile", "editProfile", "certificate", "resume"].includes(
+                mode,
+              )
+                ? "Loading profile..."
+                : mode === "admin"
+                  ? "Loading admin data..."
+                  : "Loading dashboard..."
+            }
+            onRetry={
+              remoteDataStatus.status === "error"
+                ? () => setRemoteDataAttempt((attempt) => attempt + 1)
+                : undefined
+            }
+            skeleton={
+              ["profile", "editProfile", "certificate", "resume"].includes(
+                mode,
+              )
+                ? "profile"
+                : "dashboard"
+            }
+          />
+        </main>
+      );
+    }
+
     if (mode === "admin") {
       if (!isAdminLoggedIn) {
         return (
@@ -1190,6 +1171,7 @@ function App() {
       return (
         <ResetPassword
           form={form}
+          isLoading={authLoading}
           message={message}
           onBack={() => {
             if (window.history.length > 1) {
@@ -1215,6 +1197,7 @@ function App() {
     return (
       <AuthPage
         form={form}
+        isLoading={authLoading}
         isRegister={isRegister}
         message={message}
         onChange={updateForm}
@@ -1229,9 +1212,7 @@ function App() {
     <Suspense
       fallback={
         <main className={`quiz-shell ${theme}-theme`}>
-          <section className="result-panel">
-            <h1>Loading...</h1>
-          </section>
+          <LoadingState label="Loading page..." />
         </main>
       }
     >

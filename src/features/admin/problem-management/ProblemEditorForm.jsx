@@ -18,6 +18,7 @@ export default function ProblemEditorForm({
   onCancel,
   onSave,
   submitLabel = "Save Problem",
+  loading = false,
 }) {
   const [form, setForm] = useState(emptyProblemForm);
   const [error, setError] = useState("");
@@ -225,6 +226,7 @@ export default function ProblemEditorForm({
         {onCancel && (
           <button
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            disabled={loading}
             onClick={onCancel}
             type="button"
           >
@@ -233,9 +235,10 @@ export default function ProblemEditorForm({
         )}
         <button
           className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
+          disabled={loading}
           type="submit"
         >
-          {submitLabel}
+          {loading ? "Saving..." : submitLabel}
         </button>
       </div>
     </form>

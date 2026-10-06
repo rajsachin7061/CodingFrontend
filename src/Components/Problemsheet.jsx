@@ -6,6 +6,7 @@ const Problemsheet = () => {
   const [problems, setProblems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reloadAttempt, setReloadAttempt] = useState(0);
 
   useEffect(() => {
     const loadProblems = async () => {
@@ -14,7 +15,12 @@ const Problemsheet = () => {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok)
           throw new Error(payload.message || "Could not load problem sheet.");
-        setProblems(payload.items || []);
+        if (!Array.isArray(payload.items)) {
+          throw new Error(
+            "The server returned an unexpected problem sheet response.",
+          );
+        }
+        setProblems(payload.items);
       } catch (loadError) {
         setError(loadError.message || "Could not load problem sheet.");
       } finally {
@@ -23,7 +29,7 @@ const Problemsheet = () => {
     };
 
     loadProblems();
-  }, []);
+  }, [reloadAttempt]);
 
   return (
     <main className="min-h-screen bg-[#f3f6ff] px-5 py-10 text-slate-900 sm:px-8 lg:px-16">
@@ -41,14 +47,28 @@ const Problemsheet = () => {
         </div>
 
         {loading && (
-          <p className="text-sm font-semibold text-slate-500">
+          <p aria-live="polite" className="text-sm font-semibold text-slate-500">
             Loading problems...
           </p>
         )}
         {error && (
-          <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-            {error}
-          </p>
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+            role="alert"
+          >
+            <span>{error}</span>
+            <button
+              className="rounded-lg bg-red-700 px-4 py-2 text-white"
+              onClick={() => {
+                setError("");
+                setLoading(true);
+                setReloadAttempt((attempt) => attempt + 1);
+              }}
+              type="button"
+            >
+              Try again
+            </button>
+          </div>
         )}
         {!loading && !error && !problems.length && (
           <p className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm font-semibold text-slate-500">
@@ -56,6 +76,17 @@ const Problemsheet = () => {
           </p>
         )}
         <div className="grid gap-4">
+          {loading &&
+            Array.from({ length: 5 }, (_, index) => (
+              <div
+                aria-hidden="true"
+                className="flex min-h-[88px] animate-pulse items-center gap-5 rounded-3xl border border-slate-200 bg-white px-6 py-5"
+                key={`problem-sheet-skeleton-${index}`}
+              >
+                <span className="h-12 w-12 shrink-0 rounded-full bg-slate-200" />
+                <span className="h-5 flex-1 rounded bg-slate-200" />
+              </div>
+            ))}
           {problems.map((problem, index) => (
             <a
               className="group flex min-h-10 items-center gap-5 rounded-3xl border border-slate-200 bg-slate-50/90 px-6 py-5 transition hover:border-violet-300 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.12)] sm:px-5"

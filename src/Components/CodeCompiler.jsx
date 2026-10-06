@@ -10,6 +10,7 @@ import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Link } from "react-router-dom";
 import { pageRoutes } from "../pageRoutes";
+import { apiFetch } from "../api";
 import UserMenu from "./UserMenu";
 
 const API_BASE_URL = (
@@ -153,7 +154,7 @@ const normalizeLanguageKey = (value) => {
 
 const runApiFetch = async (path, options) => {
   const primaryUrl = apiUrl(path);
-  const response = await fetch(primaryUrl, options);
+  const response = await apiFetch(primaryUrl, options);
 
   if (response.status !== 404) {
     return response;
@@ -172,7 +173,7 @@ const runApiFetch = async (path, options) => {
     return response;
   }
 
-  return fetch(fallbackApiUrl(path), options);
+  return apiFetch(fallbackApiUrl(path), options);
 };
 
 const readProgressiveVerification = async (response, onEvent) => {
@@ -623,7 +624,7 @@ function CodeCompiler({
         message: "✅ Solution submitted and accepted.",
       });
       setOutput(payload.message || "Solution accepted.");
-      onSolutionSubmitted?.();
+      await onSolutionSubmitted?.();
     } catch (error) {
       updateVerificationState({
         status: "failed",

@@ -10,6 +10,7 @@ import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Link } from "react-router-dom";
 import { pageRoutes } from "../../pageRoutes";
+import { apiFetch } from "../../api";
 import UserMenu from "../UserMenu";
 
 
@@ -128,27 +129,7 @@ const serverLanguages = new Set(["python", "java", "cpp"]);
 const previewLanguages = new Set(["html", "css"]);
 
 const runApiFetch = async (path, options) => {
-  const primaryUrl = apiUrl(path);
-  const response = await fetch(primaryUrl, options);
-
-  if (response.status !== 404) {
-    return response;
-  }
-
-  let isSameOrigin = false;
-
-  try {
-    const resolvedPrimaryUrl = new URL(primaryUrl, window.location.origin);
-    isSameOrigin = resolvedPrimaryUrl.origin === window.location.origin;
-  } catch {
-    isSameOrigin = primaryUrl.startsWith("/");
-  }
-
-  if (!isSameOrigin) {
-    return response;
-  }
-
-  return fetch(fallbackApiUrl(path), options);
+  return apiFetch(path, options);
 };
 
 const getCssPreview = (code) => `<!doctype html>

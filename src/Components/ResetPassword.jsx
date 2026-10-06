@@ -2,6 +2,7 @@
 function ResetPassword({
   form,
   message,
+  isLoading,
   onBack,
   onChange,
   onSendOtp,
@@ -28,7 +29,7 @@ function ResetPassword({
             Email
             <input
               autoComplete="email"
-              disabled={isOtpStep}
+              disabled={isOtpStep || isLoading}
               name="email"
               onChange={onChange}
               placeholder="Enter your registered email"
@@ -43,6 +44,7 @@ function ResetPassword({
                 OTP
                 <input
                   autoComplete="one-time-code"
+                  disabled={isLoading}
                   inputMode="numeric"
                   maxLength="6"
                   name="otp"
@@ -57,6 +59,7 @@ function ResetPassword({
                 New password
                 <input
                   autoComplete="new-password"
+                  disabled={isLoading}
                   name="password"
                   onChange={onChange}
                   placeholder="Enter new password"
@@ -67,19 +70,46 @@ function ResetPassword({
             </>
           )}
 
-          {message && <p className="form-message">{message}</p>}
+          {message && (
+            <p className="form-message" role="alert">
+              {message}
+            </p>
+          )}
 
-          <button className="primary-action auth-submit" type="submit">
-            {isOtpStep ? "Update Password" : "Send OTP"}
+          <button
+            className="primary-action auth-submit"
+            disabled={isLoading}
+            type="submit"
+          >
+            <span className="auth-submit-content">
+              {isLoading && <span aria-hidden="true" className="button-spinner" />}
+              {isLoading
+                ? isOtpStep
+                  ? "Updating password..."
+                  : "Sending OTP..."
+                : isOtpStep
+                  ? "Update Password"
+                  : "Send OTP"}
+            </span>
           </button>
 
           {isOtpStep && (
-            <button className="text-action" onClick={onSendOtp} type="button">
+            <button
+              className="text-action"
+              disabled={isLoading}
+              onClick={onSendOtp}
+              type="button"
+            >
               Send new OTP
             </button>
           )}
 
-          <button className="text-action" onClick={onBack} type="button">
+          <button
+            className="text-action"
+            disabled={isLoading}
+            onClick={onBack}
+            type="button"
+          >
             Back to login
           </button>
         </form>

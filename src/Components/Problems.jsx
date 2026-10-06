@@ -27,6 +27,7 @@ const Problems = () => {
   });
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
+  const [reloadAttempt, setReloadAttempt] = useState(0);
 
   useEffect(() => {
     setFilters((current) => ({ ...current, programmingLanguage: category, page: 1 }));
@@ -67,9 +68,12 @@ const Problems = () => {
         if (!response.ok) {
           throw new Error(payload.message || "Could not load problems.");
         }
+        if (!Array.isArray(payload.items)) {
+          throw new Error("The server returned an unexpected problems response.");
+        }
 
         if (!isCancelled) {
-          setProblems(Array.isArray(payload.items) ? payload.items : []);
+          setProblems(payload.items);
           setMeta({
             page: payload.page || 1,
             totalPages: payload.totalPages || 1,
@@ -91,7 +95,7 @@ const Problems = () => {
     return () => {
       isCancelled = true;
     };
-  }, [queryString]);
+  }, [queryString, reloadAttempt]);
 
   const updateFilter = (field, value) => {
     setFilters((current) => ({ ...current, [field]: value, page: 1 }));
@@ -144,13 +148,46 @@ const Problems = () => {
         </select>
       </section>
 
-      {status === "loading" && <p className="problem-state">Loading problems...</p>}
-      {status === "error" && <p className="problem-state error">{message}</p>}
+      {status === "loading" && (
+        <p aria-live="polite" className="problem-state">
+          Loading problems...
+        </p>
+      )}
+      {status === "error" && (
+        <div className="problem-state error" role="alert">
+          <span>{message}</span>
+          <button
+            className="problem-solve-button"
+            onClick={() => setReloadAttempt((attempt) => attempt + 1)}
+            type="button"
+          >
+            Try again
+          </button>
+        </div>
+      )}
       {status === "ready" && !problems.length && (
         <p className="problem-state">No problems found. Add problems from the Admin.</p>
       )}
 
       <section className="problem-list" aria-label="Problems">
+        {status === "loading" &&
+          Array.from({ length: 6 }, (_, index) => (
+            <article
+              aria-hidden="true"
+              className="problem-list-card problem-list-skeleton"
+              key={`problem-skeleton-${index}`}
+            >
+              <div>
+                <div className="problem-card-meta">
+                  <span />
+                  <span />
+                </div>
+                <span className="problem-skeleton-title" />
+                <span className="problem-skeleton-tags" />
+              </div>
+              <span className="problem-skeleton-action" />
+            </article>
+          ))}
         {problems.map((problem) => (
           <article className="problem-list-card" key={problem.id}>
             <div>
@@ -195,4 +232,3 @@ const Problems = () => {
 };
 
 export default Problems;
-
