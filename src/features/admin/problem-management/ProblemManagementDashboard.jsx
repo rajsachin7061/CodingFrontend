@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   languagesApi,
   modulesApi,
@@ -48,6 +48,8 @@ export default function ProblemManagementDashboard() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mutationLoading, setMutationLoading] = useState(false);
+  const mutationInFlight = useRef(false);
 
   const [languages, setLanguages] = useState([]);
   const [selectedLanguageId, setSelectedLanguageId] = useState("");
@@ -72,6 +74,26 @@ export default function ProblemManagementDashboard() {
   );
   const selectedModule = modules.find((item) => item.id === selectedModuleId);
 
+  const runMutation = async (action, successMessage) => {
+    if (mutationInFlight.current) {
+      return false;
+    }
+
+    mutationInFlight.current = true;
+    setMutationLoading(true);
+    try {
+      await action();
+      if (successMessage) setMessage(successMessage);
+      return true;
+    } catch (error) {
+      setMessage(error?.message || "Could not complete the request. Please try again.");
+      return false;
+    } finally {
+      mutationInFlight.current = false;
+      setMutationLoading(false);
+    }
+  };
+
   const problemParams = useMemo(
     () => ({
       page: problemFilters.page,
@@ -87,8 +109,11 @@ export default function ProblemManagementDashboard() {
     setLoading(true);
     try {
       const payload = await problemsApi.list(problemParams);
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected problems response.");
+      }
       setProblemsState({
-        items: payload.items || [],
+        items: payload.items,
         page: payload.page || 1,
         totalPages: payload.totalPages || 1,
         total: payload.total || 0,
@@ -103,7 +128,10 @@ export default function ProblemManagementDashboard() {
   const loadLanguages = async () => {
     try {
       const payload = await languagesApi.list();
-      const rows = payload.items || [];
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected languages response.");
+      }
+      const rows = payload.items;
       setLanguages(rows);
       setSelectedLanguageId((current) => current || rows[0]?.id || "");
     } catch (error) {
@@ -120,7 +148,10 @@ export default function ProblemManagementDashboard() {
 
     try {
       const payload = await modulesApi.listByLanguage(languageId);
-      const rows = payload.items || [];
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected modules response.");
+      }
+      const rows = payload.items;
       setModules(rows);
       setSelectedModuleId((current) =>
         rows.some((item) => item.id === current) ? current : rows[0]?.id || "",
@@ -138,7 +169,10 @@ export default function ProblemManagementDashboard() {
 
     try {
       const payload = await practiceQuestionsApi.listByModule(moduleId);
-      setPracticeQuestions(payload.items || []);
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected questions response.");
+      }
+      setPracticeQuestions(payload.items);
     } catch (error) {
       setMessage(error?.message || "Could not load module questions.");
     }
@@ -148,7 +182,10 @@ export default function ProblemManagementDashboard() {
     setProblemSheetLoading(true);
     try {
       const payload = await problemSheetApi.get();
-      setProblemSheetItems(payload.items || []);
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected problem sheet response.");
+      }
+      setProblemSheetItems(payload.items);
     } catch (error) {
       setMessage(error?.message || "Could not load problem sheet.");
     } finally {
@@ -177,31 +214,33 @@ export default function ProblemManagementDashboard() {
   }, []);
 
   const saveProblem = async (payload, { addToModule = false } = {}) => {
-    const saved = problemModal.problem
-      ? await problemsApi.update(problemModal.problem.id, payload)
-      : await problemsApi.create(payload);
-    const problem = saved.problem || saved;
+    await runMutation(async () => {
+      const saved = problemModal.problem
+        ? await problemsApi.update(problemModal.problem.id, payload)
+        : await problemsApi.create(payload);
+      const problem = saved.problem || saved;
 
-    if (addToModule && selectedModuleId && problem?.id) {
-      await practiceQuestionsApi.add(selectedModuleId, {
-        problemId: problem.id,
-      });
-      await loadPracticeQuestions();
-      await loadModules();
-    }
+      if (addToModule && selectedModuleId && problem?.id) {
+        await practiceQuestionsApi.add(selectedModuleId, {
+          problemId: problem.id,
+        });
+        await loadPracticeQuestions();
+        await loadModules();
+      }
 
-    setProblemModal({ open: false, problem: null });
-    setModuleCreateProblemModal(false);
-    setMessage(problemModal.problem ? "Problem updated." : "Problem created.");
-    await loadProblems();
+      setProblemModal({ open: false, problem: null });
+      setModuleCreateProblemModal(false);
+      await loadProblems();
+    }, problemModal.problem ? "Problem updated." : "Problem created.");
   };
 
   const removeProblem = async () => {
     if (!deleteTarget) return;
-    await problemsApi.remove(deleteTarget.id);
-    setDeleteTarget(null);
-    setMessage("Problem deleted.");
-    await loadProblems();
+    await runMutation(async () => {
+      await problemsApi.remove(deleteTarget.id);
+      setDeleteTarget(null);
+      await loadProblems();
+    }, "Problem deleted.");
   };
 
   const openModuleModal = (module = null) => {
@@ -221,30 +260,35 @@ export default function ProblemManagementDashboard() {
 
     if (!payload.title || !selectedLanguageId) return;
 
-    if (moduleModal.module) {
-      await modulesApi.update(moduleModal.module.id, payload);
-      setMessage("Module updated.");
-    } else {
-      await modulesApi.create(selectedLanguageId, payload);
-      setMessage("Module created.");
-    }
+    await runMutation(async () => {
+      if (moduleModal.module) {
+        await modulesApi.update(moduleModal.module.id, payload);
+      } else {
+        await modulesApi.create(selectedLanguageId, payload);
+      }
 
-    setModuleModal({ open: false, module: null });
-    await loadModules();
+      setModuleModal({ open: false, module: null });
+      await loadModules();
+    }, moduleModal.module ? "Module updated." : "Module created.");
   };
 
   const deleteModule = async () => {
     if (!moduleDeleteTarget) return;
-    await modulesApi.remove(moduleDeleteTarget.id);
-    setModuleDeleteTarget(null);
-    setMessage("Module deleted.");
-    await loadModules();
+    await runMutation(async () => {
+      await modulesApi.remove(moduleDeleteTarget.id);
+      setModuleDeleteTarget(null);
+      await loadModules();
+    }, "Module deleted.");
   };
 
   const reorderModules = async (orderedModules) => {
+    const previousModules = modules;
     setModules(orderedModules);
-    await modulesApi.reorder(orderedModules.map((item) => item.id));
-    await loadModules();
+    const saved = await runMutation(async () => {
+      await modulesApi.reorder(orderedModules.map((item) => item.id));
+      await loadModules();
+    });
+    if (!saved) setModules(previousModules);
   };
 
   const addExistingProblem = async (problemOrProblems) => {
@@ -273,38 +317,47 @@ export default function ProblemManagementDashboard() {
 
     if (!problemIds.length) return;
 
-    const payload = await practiceQuestionsApi.add(selectedModuleId, {
-      problemIds,
+    await runMutation(async () => {
+      const payload = await practiceQuestionsApi.add(selectedModuleId, {
+        problemIds,
+      });
+      setAddProblemModal(false);
+      await loadPracticeQuestions();
+      await loadModules();
+      setMessage(payload.message || "Problems added to module.");
     });
-    setAddProblemModal(false);
-    setMessage(payload.message || "Problems added to module.");
-    await loadPracticeQuestions();
-    await loadModules();
   };
 
   const updatePracticeQuestionStatus = async (question) => {
-    await practiceQuestionsApi.update(question.id, {
-      status: question.status === "active" ? "inactive" : "active",
-    });
-    await loadPracticeQuestions();
+    await runMutation(async () => {
+      await practiceQuestionsApi.update(question.id, {
+        status: question.status === "active" ? "inactive" : "active",
+      });
+      await loadPracticeQuestions();
+    }, "Question status updated.");
   };
 
   const removePracticeQuestion = async () => {
     if (!questionDeleteTarget) return;
-    await practiceQuestionsApi.remove(questionDeleteTarget.id);
-    setQuestionDeleteTarget(null);
-    setMessage("Question removed from module.");
-    await loadPracticeQuestions();
-    await loadModules();
+    await runMutation(async () => {
+      await practiceQuestionsApi.remove(questionDeleteTarget.id);
+      setQuestionDeleteTarget(null);
+      await loadPracticeQuestions();
+      await loadModules();
+    }, "Question removed from module.");
   };
 
   const reorderPracticeQuestions = async (orderedQuestions) => {
+    const previousQuestions = practiceQuestions;
     setPracticeQuestions(orderedQuestions);
-    await practiceQuestionsApi.reorder(
-      selectedModuleId,
-      orderedQuestions.map((item) => item.id),
-    );
-    await loadPracticeQuestions();
+    const saved = await runMutation(async () => {
+      await practiceQuestionsApi.reorder(
+        selectedModuleId,
+        orderedQuestions.map((item) => item.id),
+      );
+      await loadPracticeQuestions();
+    });
+    if (!saved) setPracticeQuestions(previousQuestions);
   };
 
   const updateProblemFilter = (field, value) => {
@@ -312,11 +365,16 @@ export default function ProblemManagementDashboard() {
   };
 
   const saveProblemSheet = async () => {
-    const payload = await problemSheetApi.save(
-      problemSheetItems.map((problem) => problem.id),
-    );
-    setProblemSheetItems(payload.items || problemSheetItems);
-    setMessage(payload.message || "Problem sheet saved.");
+    await runMutation(async () => {
+      const payload = await problemSheetApi.save(
+        problemSheetItems.map((problem) => problem.id),
+      );
+      if (!Array.isArray(payload.items)) {
+        throw new Error("The server returned an unexpected problem sheet response.");
+      }
+      setProblemSheetItems(payload.items);
+      setMessage(payload.message || "Problem sheet saved.");
+    });
   };
 
   return (
@@ -374,9 +432,17 @@ export default function ProblemManagementDashboard() {
           </div>
 
           {message && (
-            <div className="mb-5 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-800">
+            <div
+              className="mb-5 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-800"
+              role="status"
+            >
               {message}
             </div>
+          )}
+          {mutationLoading && (
+            <p aria-live="polite" className="mb-4 text-sm font-semibold text-cyan-800">
+              Saving changes...
+            </p>
           )}
 
           {activeSection === "problems" ? (
@@ -397,6 +463,7 @@ export default function ProblemManagementDashboard() {
             <ProblemSheetSection
               items={problemSheetItems}
               loading={problemSheetLoading}
+              saving={mutationLoading}
               onAdd={() => setAddProblemModal(true)}
               onRemove={(problem) =>
                 setProblemSheetItems((current) =>
@@ -410,6 +477,7 @@ export default function ProblemManagementDashboard() {
             <PracticeSection
               languages={languages}
               modules={modules}
+              saving={mutationLoading}
               onAddExistingProblem={() => setAddProblemModal(true)}
               onCreateModule={() => openModuleModal()}
               onCreateProblem={() => setModuleCreateProblemModal(true)}
@@ -443,6 +511,7 @@ export default function ProblemManagementDashboard() {
       >
         <ProblemEditorForm
           initialProblem={problemModal.problem}
+          loading={mutationLoading}
           onCancel={() => setProblemModal({ open: false, problem: null })}
           onSave={saveProblem}
           submitLabel={problemModal.problem ? "Update Problem" : "Save Problem"}
@@ -456,6 +525,7 @@ export default function ProblemManagementDashboard() {
         title="Create New Problem For Module"
       >
         <ProblemEditorForm
+          loading={mutationLoading}
           onCancel={() => setModuleCreateProblemModal(false)}
           onSave={(payload) => saveProblem(payload, { addToModule: true })}
           submitLabel="Create and Add"
@@ -499,14 +569,16 @@ export default function ProblemManagementDashboard() {
               className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               onClick={() => setModuleModal({ open: false, module: null })}
               type="button"
+              disabled={mutationLoading}
             >
               Cancel
             </button>
             <button
               className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
+              disabled={mutationLoading}
               type="submit"
             >
-              Save Module
+              {mutationLoading ? "Saving..." : "Save Module"}
             </button>
           </div>
         </form>
@@ -516,6 +588,7 @@ export default function ProblemManagementDashboard() {
         onAdd={addExistingProblem}
         onClose={() => setAddProblemModal(false)}
         open={addProblemModal}
+        saving={mutationLoading}
       />
 
       <ConfirmDialog
@@ -523,12 +596,14 @@ export default function ProblemManagementDashboard() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={removeProblem}
         open={Boolean(deleteTarget)}
+        loading={mutationLoading}
       />
       <ConfirmDialog
         message={`Delete "${moduleDeleteTarget?.title || "this module"}"? This removes its practice question links.`}
         onCancel={() => setModuleDeleteTarget(null)}
         onConfirm={deleteModule}
         open={Boolean(moduleDeleteTarget)}
+        loading={mutationLoading}
         title="Delete Module"
       />
       <ConfirmDialog
@@ -537,6 +612,7 @@ export default function ProblemManagementDashboard() {
         onCancel={() => setQuestionDeleteTarget(null)}
         onConfirm={removePracticeQuestion}
         open={Boolean(questionDeleteTarget)}
+        loading={mutationLoading}
         title="Remove Practice Question"
       />
     </section>
@@ -880,6 +956,7 @@ function ProblemRow({ onDelete, onEdit, problem }) {
 function ProblemSheetSection({
   items,
   loading,
+  saving,
   onAdd,
   onRemove,
   onReorder,
@@ -897,6 +974,7 @@ function ProblemSheetSection({
         <div className="flex flex-wrap gap-2">
           <button
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            disabled={saving}
             onClick={onAdd}
             type="button"
           >
@@ -904,11 +982,11 @@ function ProblemSheetSection({
           </button>
           <button
             className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
-            disabled={loading}
+            disabled={loading || saving}
             onClick={onSave}
             type="button"
           >
-            Save Problem Sheet
+            {saving ? "Saving..." : "Save Problem Sheet"}
           </button>
         </div>
       </div>
@@ -949,6 +1027,7 @@ function ProblemSheetSection({
 function PracticeSection({
   languages,
   modules,
+  saving,
   onAddExistingProblem,
   onCreateModule,
   onCreateProblem,
@@ -1008,7 +1087,7 @@ function PracticeSection({
             </div>
             <button
               className="rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-800"
-              disabled={!selectedLanguageId}
+              disabled={!selectedLanguageId || saving}
               onClick={onCreateModule}
               type="button"
             >
@@ -1040,6 +1119,7 @@ function PracticeSection({
                   <div className="flex gap-2">
                     <button
                       className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700"
+                      disabled={saving}
                       onClick={() => onEditModule(module)}
                       type="button"
                     >
@@ -1047,6 +1127,7 @@ function PracticeSection({
                     </button>
                     <button
                       className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700"
+                      disabled={saving}
                       onClick={() => onDeleteModule(module)}
                       type="button"
                     >
@@ -1075,7 +1156,7 @@ function PracticeSection({
             <div className="flex flex-wrap gap-2">
               <button
                 className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                disabled={!selectedModuleId}
+                disabled={!selectedModuleId || saving}
                 onClick={onAddExistingProblem}
                 type="button"
               >
@@ -1083,7 +1164,7 @@ function PracticeSection({
               </button>
               <button
                 className="rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-800"
-                disabled={!selectedModuleId}
+                disabled={!selectedModuleId || saving}
                 onClick={onCreateProblem}
                 type="button"
               >
@@ -1102,6 +1183,7 @@ function PracticeSection({
                   onRemove={onRemoveQuestion}
                   onToggleStatus={onToggleQuestionStatus}
                   question={question}
+                  saving={saving}
                 />
               )}
             />
@@ -1130,6 +1212,7 @@ function PracticeQuestionRow({
   onRemove,
   onToggleStatus,
   question,
+  saving,
 }) {
   const problem = question.problem || question.question || {};
 
@@ -1156,6 +1239,7 @@ function PracticeQuestionRow({
             ? "bg-emerald-50 text-emerald-700"
             : "bg-slate-100 text-slate-600"
         }`}
+        disabled={saving}
         onClick={() => onToggleStatus(question)}
         type="button"
       >
@@ -1164,6 +1248,7 @@ function PracticeQuestionRow({
       <div className="flex gap-2 xl:justify-end">
         <button
           className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          disabled={saving}
           onClick={() => onEditProblem(problem)}
           type="button"
         >
@@ -1171,6 +1256,7 @@ function PracticeQuestionRow({
         </button>
         <button
           className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+          disabled={saving}
           onClick={() => onRemove(question)}
           type="button"
         >
@@ -1181,11 +1267,13 @@ function PracticeQuestionRow({
   );
 }
 
-function AddExistingProblemModal({ onAdd, onClose, open }) {
+function AddExistingProblemModal({ onAdd, onClose, open, saving }) {
   const [filters, setFilters] = useState({ search: "", difficulty: "" });
   const [items, setItems] = useState([]);
   const [selectedProblems, setSelectedProblems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [reloadAttempt, setReloadAttempt] = useState(0);
   const selectedProblemIds = useMemo(
     () => selectedProblems.map((problem) => problem.id),
     [selectedProblems],
@@ -1199,6 +1287,7 @@ function AddExistingProblemModal({ onAdd, onClose, open }) {
 
     const load = async () => {
       setLoading(true);
+      setError("");
       try {
         const payload = await problemsApi.list({
           limit: 20,
@@ -1206,14 +1295,19 @@ function AddExistingProblemModal({ onAdd, onClose, open }) {
           difficulty: filters.difficulty,
           status: "published",
         });
-        setItems(payload.items || []);
+        if (!Array.isArray(payload.items)) {
+          throw new Error("The server returned an unexpected problems response.");
+        }
+        setItems(payload.items);
+      } catch (loadError) {
+        setError(loadError?.message || "Could not load problems.");
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [open, filters]);
+  }, [open, filters, reloadAttempt]);
 
   const toggleProblem = (problem, checked) => {
     setSelectedProblems((current) =>
@@ -1262,6 +1356,17 @@ function AddExistingProblemModal({ onAdd, onClose, open }) {
         <div className="max-h-[440px] overflow-auto rounded-lg border border-slate-200">
           {loading ? (
             <EmptyCard text="Loading problems..." />
+          ) : error ? (
+            <div className="p-5 text-center" role="alert">
+              <p className="mb-3 text-sm font-semibold text-red-700">{error}</p>
+              <button
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold"
+                onClick={() => setReloadAttempt((attempt) => attempt + 1)}
+                type="button"
+              >
+                Try again
+              </button>
+            </div>
           ) : items.length ? (
             items.map((problem) => (
               <label
@@ -1296,6 +1401,7 @@ function AddExistingProblemModal({ onAdd, onClose, open }) {
           <div className="flex gap-2 sm:justify-end">
             <button
               className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              disabled={saving}
               onClick={onClose}
               type="button"
             >
@@ -1303,11 +1409,11 @@ function AddExistingProblemModal({ onAdd, onClose, open }) {
             </button>
             <button
               className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!selectedProblems.length}
+              disabled={!selectedProblems.length || saving}
               onClick={() => onAdd(selectedProblems)}
               type="button"
             >
-              Add Selected
+              {saving ? "Adding..." : "Add Selected"}
             </button>
           </div>
         </div>

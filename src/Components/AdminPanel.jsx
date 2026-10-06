@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProblemManagement from "./ProblemManagement";
 import quizCategories, { defaultQuizCategory } from "./QuizCategories";
 import { problemsApi } from "../features/admin/api/adminApi";
@@ -43,6 +43,8 @@ function AdminPanel({
 }) {
   const [draft, setDraft] = useState(emptyQuestion);
   const [message, setMessage] = useState({ text: "", type: "error" });
+  const [mutationLoading, setMutationLoading] = useState(false);
+  const mutationInFlight = useRef(false);
   const [activeView, setActiveView] = useState("users");
   const [editingUser, setEditingUser] = useState("");
   const [editingQuestion, setEditingQuestion] = useState("");
@@ -173,6 +175,25 @@ function AdminPanel({
   };
   const showError = (text) => setMessage({ text, type: "error" });
   const showSuccess = (text) => setMessage({ text, type: "success" });
+  const runMutation = async (action, successText, fallbackError) => {
+    if (mutationInFlight.current) {
+      return false;
+    }
+
+    mutationInFlight.current = true;
+    setMutationLoading(true);
+    try {
+      await action();
+      showSuccess(successText);
+      return true;
+    } catch (error) {
+      showError(error?.message || fallbackError);
+      return false;
+    } finally {
+      mutationInFlight.current = false;
+      setMutationLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!message.text || message.type !== "success") {
@@ -282,7 +303,7 @@ function AdminPanel({
     clearMessage();
   };
 
-  const saveUser = (event, user) => {
+  const saveUser = async (event, user) => {
     event.preventDefault();
     const userDraft = getUserDraft(user);
     const name = userDraft.name.trim();
@@ -292,9 +313,12 @@ function AdminPanel({
       return;
     }
 
-    onUpdateUser(user.email, { name, password: userDraft.password });
-    setEditingUser("");
-    showSuccess("User details updated successfully.");
+    const saved = await runMutation(
+      () => onUpdateUser(user.email, { name, password: userDraft.password }),
+      "User details updated successfully.",
+      "Could not update user details.",
+    );
+    if (saved) setEditingUser("");
   };
 
   const saveQuestion = async (event, question) => {
@@ -318,13 +342,12 @@ function AdminPanel({
       return;
     }
 
-    try {
-      await onUpdateQuestion(question.id, payload);
-      setEditingQuestion("");
-      showSuccess("Question updated successfully.");
-    } catch (error) {
-      showError(error?.message || "Could not update question.");
-    }
+    const saved = await runMutation(
+      () => onUpdateQuestion(question.id, payload),
+      "Question updated successfully.",
+      "Could not update question.",
+    );
+    if (saved) setEditingQuestion("");
   };
 
   const handleAddQuestion = async (event) => {
@@ -348,7 +371,7 @@ function AdminPanel({
       return;
     }
 
-    try {
+    await runMutation(async () => {
       const createdQuestion = await onAddQuestion({
         ...draft,
         category,
@@ -375,17 +398,14 @@ function AdminPanel({
         setActiveView("quiz");
       }
       setDraft(emptyQuestion);
-      showSuccess(`${category} question added successfully.`);
-    } catch (error) {
-      showError(error?.message || "Could not add question.");
-    }
+    }, `${category} question added successfully.`, "Could not add question.");
   };
 
   const saveContestSettings = async (event) => {
     event.preventDefault();
 
-    try {
-      await onUpdateContestSettings({
+    await runMutation(
+      () => onUpdateContestSettings({
         contestName:
           (settingsDraft.contestName || "").trim() || "Weekly Contest",
         contestQuestionCount: Number(settingsDraft.contestQuestionCount),
@@ -399,26 +419,24 @@ function AdminPanel({
           : null,
         selectedQuestionIds: settingsDraft.selectedQuestionIds,
         showLeaderboardToUsers: Boolean(settingsDraft.showLeaderboardToUsers),
-      });
-      showSuccess("Contest settings saved.");
-    } catch (error) {
-      showError(error?.message || "Could not save contest settings.");
-    }
+      }),
+      "Contest settings saved.",
+      "Could not save contest settings.",
+    );
   };
 
   const saveQuizSettings = async (event) => {
     event.preventDefault();
-    try {
-      await onUpdateQuizSettings({
+    await runMutation(
+      () => onUpdateQuizSettings({
         quizName: (quizDraft.quizName || "").trim() || "Practice Quiz",
         quizQuestionCount: Number(quizDraft.quizQuestionCount),
         quizDurationSeconds: Number(quizDraft.quizDurationSeconds),
         selectedQuizQuestionIds: quizDraft.selectedQuizQuestionIds,
-      });
-      showSuccess("Quiz settings saved.");
-    } catch (error) {
-      showError(error?.message || "Could not save quiz settings.");
-    }
+      }),
+      "Quiz settings saved.",
+      "Could not save quiz settings.",
+    );
   };
 
   const toggleQuizQuestionSelection = (questionId, checked) => {
@@ -588,8 +606,12 @@ function AdminPanel({
                           </label>
                         </div>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" type="submit">
-                            Save
+                          <button
+                            className="secondary-action"
+                            disabled={mutationLoading}
+                            type="submit"
+                          >
+                            {mutationLoading ? "Saving..." : "Save"}
                           </button>
                           <button
                             className="secondary-action"
@@ -611,14 +633,28 @@ function AdminPanel({
                         </button>
                         <button
                           className="secondary-action"
-                          onClick={() => onToggleUserBlock(user.email)}
+                          disabled={mutationLoading}
+                          onClick={() =>
+                            runMutation(
+                              () => onToggleUserBlock(user.email),
+                              user.blocked ? "User unblocked." : "User blocked.",
+                              "Could not update user status.",
+                            )
+                          }
                           type="button"
                         >
                           {user.blocked ? "Unblock" : "Block"}
                         </button>
                         <button
                           className="danger-action"
-                          onClick={() => onDeleteUser(user.email)}
+                          disabled={mutationLoading}
+                          onClick={() =>
+                            runMutation(
+                              () => onDeleteUser(user.email),
+                              "User deleted.",
+                              "Could not delete user.",
+                            )
+                          }
                           type="button"
                         >
                           Delete
@@ -740,8 +776,12 @@ function AdminPanel({
                           </select>
                         </label>
                         <div className="user-edit-actions">
-                          <button className="secondary-action" type="submit">
-                            Save
+                          <button
+                            className="secondary-action"
+                            disabled={mutationLoading}
+                            type="submit"
+                          >
+                            {mutationLoading ? "Saving..." : "Save"}
                           </button>
                           <button
                             className="secondary-action"
@@ -771,8 +811,14 @@ function AdminPanel({
                           </button>
                           <button
                             className="danger-action"
-                            disabled={questions.length <= 1}
-                            onClick={() => onDeleteQuestion(question.id)}
+                            disabled={questions.length <= 1 || mutationLoading}
+                            onClick={() =>
+                              runMutation(
+                                () => onDeleteQuestion(question.id),
+                                "Question deleted.",
+                                "Could not delete question.",
+                              )
+                            }
                             type="button"
                           >
                             Delete
@@ -873,8 +919,12 @@ function AdminPanel({
               </select>
             </label>
             {statusMessage}
-            <button className="primary-action" type="submit">
-              Add Question
+            <button
+              className="primary-action"
+              disabled={mutationLoading}
+              type="submit"
+            >
+              {mutationLoading ? "Saving..." : "Add Question"}
             </button>
           </form>
         )}
@@ -1098,8 +1148,12 @@ function AdminPanel({
               </section>
             )}
             {statusMessage}
-            <button className="primary-action" type="submit">
-              Save Contest Settings
+            <button
+              className="primary-action"
+              disabled={mutationLoading}
+              type="submit"
+            >
+              {mutationLoading ? "Saving..." : "Save Contest Settings"}
             </button>
           </form>
         )}
@@ -1189,8 +1243,12 @@ function AdminPanel({
               ))}
             </div>
             {statusMessage}
-            <button className="primary-action" type="submit">
-              Save Quiz Settings
+            <button
+              className="primary-action"
+              disabled={mutationLoading}
+              type="submit"
+            >
+              {mutationLoading ? "Saving..." : "Save Quiz Settings"}
             </button>
           </form>
         )}

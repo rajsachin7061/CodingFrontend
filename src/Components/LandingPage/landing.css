@@ -870,7 +870,7 @@ body { background: #fff; color: #111633; }
   width: min(1440px, 100%);
   min-height: 560px;
   margin: 0 auto;
-  padding: 58px clamp(24px, 5vw, 72px) 64px;
+  padding: 30px clamp(24px, 5vw, 72px) 64px;
   overflow: hidden;
   background: #fff;
 }

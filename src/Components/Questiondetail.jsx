@@ -99,6 +99,7 @@ const Questiondetail = ({
   const [problem, setProblem] = useState(null);
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
+  const [reloadAttempt, setReloadAttempt] = useState(0);
   const [activeTab, setActiveTab] = useState("Statement");
   const [isCustomInputOpen, setIsCustomInputOpen] = useState(false);
   const [verificationState, setVerificationState] = useState({
@@ -210,6 +211,9 @@ const Questiondetail = ({
         if (!response.ok) {
           throw new Error(payload.message || "Could not load this problem.");
         }
+        if (!payload || typeof payload !== "object" || !payload.id) {
+          throw new Error("The server returned an unexpected problem response.");
+        }
 
         if (!isCancelled) {
           setProblem(payload);
@@ -229,7 +233,7 @@ const Questiondetail = ({
     return () => {
       isCancelled = true;
     };
-  }, [problemId, questionSource]);
+  }, [problemId, questionSource, reloadAttempt]);
 
   useEffect(() => {
     if (!isCustomInputOpen) return undefined;
@@ -762,7 +766,20 @@ const Questiondetail = ({
                 ? "Could not load hints."
                 : "AI Help is currently unavailable.";
 
-      return <p className="problem-detail-state error">{errorCopy}</p>;
+      return (
+        <div className="problem-detail-state error" role="alert">
+          <p>{errorCopy}</p>
+          {activeTab === "Statement" && (
+            <button
+              className="next-button"
+              onClick={() => setReloadAttempt((attempt) => attempt + 1)}
+              type="button"
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      );
     }
 
     if (!problem) return null;

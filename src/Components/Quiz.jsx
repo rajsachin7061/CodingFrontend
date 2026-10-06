@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import quizCategories from "./QuizCategories";
 import UserMenu from "./UserMenu";
@@ -65,6 +65,8 @@ function Quiz({
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [contestProblemsState, setContestProblemsState] = useState("loading");
   const [contestProblems, setContestProblems] = useState([]);
+  const [contestProblemsError, setContestProblemsError] = useState("");
+  const [contestProblemsAttempt, setContestProblemsAttempt] = useState(0);
   const [contestRemainingSeconds, setContestRemainingSeconds] = useState(
     contestSettings?.contestDurationSeconds || 600,
   );
@@ -73,6 +75,13 @@ function Quiz({
   const [nowTs, setNowTs] = useState(Date.now());
   const [learningPaths, setLearningPaths] = useState([]);
   const [learningPathsState, setLearningPathsState] = useState("loading");
+  const [learningPathsError, setLearningPathsError] = useState("");
+  const [learningPathsAttempt, setLearningPathsAttempt] = useState(0);
+  const [resultSubmission, setResultSubmission] = useState({
+    status: "idle",
+    message: "",
+  });
+  const resultSubmitInFlight = useRef(false);
 
   const selectedCategory =
     routeCategory || ((contestLanding || quizLanding) && localCategory) || "";
@@ -135,13 +144,19 @@ function Quiz({
             payload.message || "Could not load contest problems.",
           );
         }
+        if (!Array.isArray(payload.items)) {
+          throw new Error("The server returned an unexpected problems response.");
+        }
         if (!isCancelled) {
-          setContestProblems(payload.items || []);
+          setContestProblems(payload.items);
           setContestProblemsState("ready");
         }
-      } catch {
+      } catch (error) {
         if (!isCancelled) {
           setContestProblems([]);
+          setContestProblemsError(
+            error?.message || "Could not load contest problems.",
+          );
           setContestProblemsState("error");
         }
       }
@@ -151,7 +166,7 @@ function Quiz({
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [contestProblemsAttempt]);
 
   const practiceQuestions = isContest
     ? contestQuestions
@@ -226,18 +241,27 @@ function Quiz({
 
     const loadLearningPaths = async () => {
       setLearningPathsState("loading");
+      setLearningPathsError("");
       try {
         const response = await apiFetch("/api/practice/languages");
         const payload = await response.json().catch(() => ({}));
         if (!response.ok)
           throw new Error(payload.message || "Could not load learning paths.");
+        if (!Array.isArray(payload.items)) {
+          throw new Error(
+            "The server returned an unexpected learning paths response.",
+          );
+        }
         if (!isCancelled) {
-          setLearningPaths(Array.isArray(payload.items) ? payload.items : []);
+          setLearningPaths(payload.items);
           setLearningPathsState("ready");
         }
-      } catch {
+      } catch (error) {
         if (!isCancelled) {
           setLearningPaths([]);
+          setLearningPathsError(
+            error?.message || "Could not load learning paths.",
+          );
           setLearningPathsState("error");
         }
       }
@@ -247,13 +271,14 @@ function Quiz({
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [learningPathsAttempt]);
 
   useEffect(() => {
     setIndex(0);
     setScore(0);
     setSelectedAnswer("");
     setIsFinished(false);
+    setResultSubmission({ status: "idle", message: "" });
     setContestElapsedSeconds(0);
     setContestRemainingSeconds(contestDurationSeconds);
   }, [selectedCategory, contestDurationSeconds]);
@@ -314,7 +339,34 @@ function Quiz({
 
   const openContest = () => onOpenContest?.();
 
-  const handleContestSubmission = () => {
+  const submitQuizResults = async (result) => {
+    if (resultSubmitInFlight.current) {
+      return;
+    }
+
+    resultSubmitInFlight.current = true;
+    setResultSubmission({ status: "loading", message: "" });
+
+    try {
+      await onPracticeComplete(result);
+      setResultSubmission({ status: "success", message: "" });
+      setIsFinished(true);
+    } catch (error) {
+      setResultSubmission({
+        status: "error",
+        message:
+          error?.message || "Could not save quiz results. Please try again.",
+      });
+    } finally {
+      resultSubmitInFlight.current = false;
+    }
+  };
+
+  const handleContestSubmission = async () => {
+    if (resultSubmitInFlight.current) {
+      return;
+    }
+
     const nextScore = score + 1;
     const nextIndex = index + 1;
 
@@ -324,18 +376,17 @@ function Quiz({
       return;
     }
 
-    finishContestAttempt(nextScore, contestElapsedSeconds);
+    await finishContestAttempt(nextScore, contestElapsedSeconds);
   };
 
-  const finishContestAttempt = (finalScore, elapsedSeconds) => {
-    onPracticeComplete({
+  const finishContestAttempt = async (finalScore, elapsedSeconds) => {
+    await submitQuizResults({
       category: "Contest",
       totalQuestions: practiceQuestions.length,
       score: finalScore,
       totalTimeSeconds: elapsedSeconds,
       contestName,
     });
-    setIsFinished(true);
   };
 
   const checkAnswer = (option) => {
@@ -351,8 +402,12 @@ function Quiz({
     }
   };
 
-  const goToNextQuestion = () => {
+  const goToNextQuestion = async () => {
     if (!currentQuestion || !selectedAnswer) {
+      return;
+    }
+
+    if (resultSubmitInFlight.current) {
       return;
     }
 
@@ -362,14 +417,13 @@ function Quiz({
       setIndex(next);
       setSelectedAnswer("");
     } else if (isContest) {
-      finishContestAttempt(score, contestElapsedSeconds);
+      await finishContestAttempt(score, contestElapsedSeconds);
     } else {
-      onPracticeComplete({
+      await submitQuizResults({
         category: selectedCategory,
         totalQuestions: practiceQuestions.length,
         score,
       });
-      setIsFinished(true);
     }
   };
 
@@ -378,6 +432,7 @@ function Quiz({
     setScore(0);
     setSelectedAnswer("");
     setIsFinished(false);
+    setResultSubmission({ status: "idle", message: "" });
     setContestElapsedSeconds(0);
     if (isContest) {
       setContestRemainingSeconds(contestDurationSeconds);
@@ -394,6 +449,7 @@ function Quiz({
     setScore(0);
     setSelectedAnswer("");
     setIsFinished(false);
+    setResultSubmission({ status: "idle", message: "" });
     onChangePractice();
   };
 
@@ -549,9 +605,23 @@ function Quiz({
                 </p>
               )}
             {contestProblemsState === "loading" && (
-              <p className="home-empty-state">
+              <p aria-live="polite" className="home-empty-state">
                 Loading selected contest problems...
               </p>
+            )}
+            {contestProblemsState === "error" && (
+              <div className="home-empty-state" role="alert">
+                <p>{contestProblemsError}</p>
+                <button
+                  className="secondary-action"
+                  onClick={() =>
+                    setContestProblemsAttempt((attempt) => attempt + 1)
+                  }
+                  type="button"
+                >
+                  Try again
+                </button>
+              </div>
             )}
             <button
               className="primary-action"
@@ -884,12 +954,23 @@ function Quiz({
               })}
             </div>
             {learningPathsState === "loading" && (
-              <p className="home-empty-state">Loading practice...</p>
+              <p aria-live="polite" className="home-empty-state">
+                Loading practice...
+              </p>
             )}
             {learningPathsState === "error" && (
-              <p className="home-empty-state">
-                Unable to load practice questions. Please refresh and try again.
-              </p>
+              <div className="home-empty-state" role="alert">
+                <p>{learningPathsError}</p>
+                <button
+                  className="secondary-action"
+                  onClick={() =>
+                    setLearningPathsAttempt((attempt) => attempt + 1)
+                  }
+                  type="button"
+                >
+                  Try again
+                </button>
+              </div>
             )}
             {learningPathsState === "ready" && !learningPaths.length && (
               <p className="home-empty-state">
@@ -1045,13 +1126,32 @@ function Quiz({
           <div className="result-actions">
             <button
               className="primary-action"
-              disabled={!selectedAnswer}
+              disabled={
+                !selectedAnswer || resultSubmission.status === "loading"
+              }
               onClick={goToNextQuestion}
               type="button"
             >
-              {index + 1 < practiceQuestions.length ? "Next" : "Finish"}
+              {resultSubmission.status === "loading"
+                ? "Submitting..."
+                : resultSubmission.status === "error" &&
+                    index + 1 === practiceQuestions.length
+                  ? "Retry submission"
+                  : index + 1 < practiceQuestions.length
+                    ? "Next"
+                    : "Finish"}
             </button>
           </div>
+          {resultSubmission.status === "loading" && (
+            <p aria-live="polite" className="form-message">
+              Saving quiz results...
+            </p>
+          )}
+          {resultSubmission.status === "error" && (
+            <p className="form-message" role="alert">
+              {resultSubmission.message}
+            </p>
+          )}
         </section>
       </main>
     );
@@ -1077,6 +1177,25 @@ function Quiz({
           </div>
         </header>
         <section className="problem-layout contest-problem-layout">
+          {resultSubmission.status === "loading" && (
+            <p aria-live="polite" className="form-message">
+              Saving contest results...
+            </p>
+          )}
+          {resultSubmission.status === "error" && (
+            <div className="form-message" role="alert">
+              <span>{resultSubmission.message}</span>
+              <button
+                className="secondary-action"
+                onClick={() =>
+                  finishContestAttempt(score, contestElapsedSeconds)
+                }
+                type="button"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <article className="problem-panel problem-statement-panel">
             <div className="problem-tabs">
               <button className="problem-tab active" type="button">
@@ -1296,13 +1415,32 @@ function Quiz({
         <div className="result-actions">
           <button
             className="primary-action"
-            disabled={!selectedAnswer}
+            disabled={
+              !selectedAnswer || resultSubmission.status === "loading"
+            }
             onClick={goToNextQuestion}
             type="button"
           >
-            {index + 1 < practiceQuestions.length ? "Next" : "Finish"}
+            {resultSubmission.status === "loading"
+              ? "Submitting..."
+              : resultSubmission.status === "error" &&
+                  index + 1 === practiceQuestions.length
+                ? "Retry submission"
+                : index + 1 < practiceQuestions.length
+                  ? "Next"
+                  : "Finish"}
           </button>
         </div>
+        {resultSubmission.status === "loading" && (
+          <p aria-live="polite" className="form-message">
+            Saving quiz results...
+          </p>
+        )}
+        {resultSubmission.status === "error" && (
+          <p className="form-message" role="alert">
+            {resultSubmission.message}
+          </p>
+        )}
       </section>
     </main>
   );
