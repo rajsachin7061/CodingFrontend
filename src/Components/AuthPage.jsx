@@ -64,6 +64,22 @@ function AuthPage({
             />
           </label>
 
+          {isRegister && (
+            <label className="email-consent-option">
+              <input
+                checked={form.dailyChallengeEmailOptIn === true}
+                disabled={isLoading}
+                name="dailyChallengeEmailOptIn"
+                onChange={onChange}
+                type="checkbox"
+              />
+              <span>
+                Email me the daily coding challenge. You can unsubscribe at any
+                time.
+              </span>
+            </label>
+          )}
+
           {message && (
             <p className="form-message" role="alert">
               {message}

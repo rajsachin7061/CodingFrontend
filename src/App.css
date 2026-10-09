@@ -327,6 +327,33 @@
   outline: 3px solid rgba(94, 234, 212, 0.28);
 }
 
+.auth-form .email-consent-option {
+  align-items: start;
+  display: flex;
+  font-weight: 600;
+  gap: 10px;
+}
+
+.auth-form .email-consent-option input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  min-height: 0;
+  padding: 0;
+}
+
+.daily-email-preference {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.daily-email-preference input {
+  height: 18px;
+  width: 18px;
+}
+
 .auth-submit {
   margin-top: 4px;
 }

@@ -685,6 +685,7 @@ function CodeCompiler({
         </div>
       </header>
 
+      
       <section className="compiler-panel">
         <div className="compiler-heading">
           <div>
