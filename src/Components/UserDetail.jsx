@@ -144,6 +144,31 @@ function UserDetail({
     }
   };
 
+  const updateDailyEmailPreference = async (event) => {
+    if (saveInFlight.current) {
+      return;
+    }
+
+    const optedIn = event.target.checked;
+    saveInFlight.current = true;
+    setSaveLoading(true);
+    try {
+      await onSaveProfile(user.email, {
+        dailyChallengeEmailOptIn: optedIn,
+      });
+      setMessage(
+        optedIn
+          ? "Daily challenge emails enabled."
+          : "Daily challenge emails disabled.",
+      );
+    } catch (error) {
+      setMessage(error?.message || "Could not update email preferences.");
+    } finally {
+      saveInFlight.current = false;
+      setSaveLoading(false);
+    }
+  };
+
   const updateResume = (field, value) => {
     setDraft((current) => ({
       ...current,
@@ -282,6 +307,20 @@ function UserDetail({
                 <strong>{stats.completedQuizzes || 0}</strong>
               </div>
             </div>
+            <label className="daily-email-preference">
+              <input
+                checked={user.dailyChallengeEmailOptIn === true}
+                disabled={saveLoading}
+                onChange={updateDailyEmailPreference}
+                type="checkbox"
+              />
+              <span>Send me the daily coding challenge email.</span>
+            </label>
+            {message && (
+              <p className="form-message" role="status">
+                {message}
+              </p>
+            )}
             {showPublishedLeaderboard && (
               <div className="detail-list" aria-label="Published contest leaderboard">
                 <h2>{contestName} LeaderBoard</h2>

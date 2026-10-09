@@ -115,6 +115,7 @@ const getDefaultResume = (user = {}) => ({
 const normalizeUser = (user) => ({
   ...user,
   username: user.username || makeUsername(user.name, user.email),
+  dailyChallengeEmailOptIn: user.dailyChallengeEmailOptIn === true,
   stats: {
     ...getDefaultStats(),
     ...(user.stats || {}),
@@ -200,6 +201,7 @@ function App() {
     email: "",
     otp: "",
     password: "",
+    dailyChallengeEmailOptIn: false,
   });
   const [message, setMessage] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
@@ -259,8 +261,11 @@ function App() {
   };
 
   const updateForm = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const { checked, name, type, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     setMessage("");
   };
 
@@ -433,6 +438,7 @@ function App() {
             name,
             email,
             password,
+            dailyChallengeEmailOptIn: form.dailyChallengeEmailOptIn === true,
             username: makeUsername(name, email),
             stats: getDefaultStats(),
             resume: getDefaultResume({ name, email }),
@@ -510,7 +516,13 @@ function App() {
 
   const switchMode = () => {
     goToPage(mode === "login" ? "register" : "login");
-    setForm({ name: "", email: "", otp: "", password: "" });
+    setForm({
+      name: "",
+      email: "",
+      otp: "",
+      password: "",
+      dailyChallengeEmailOptIn: false,
+    });
     setMessage("");
   };
 
@@ -518,7 +530,13 @@ function App() {
     goToPage("reset");
     setResetStep("email");
     setResetRequest(null);
-    setForm({ name: "", email: form.email, otp: "", password: "" });
+    setForm({
+      name: "",
+      email: form.email,
+      otp: "",
+      password: "",
+      dailyChallengeEmailOptIn: false,
+    });
     setMessage("");
   };
 
@@ -632,7 +650,13 @@ function App() {
       setResetRequest(null);
       setResetStep("email");
       goToPage("login");
-      setForm({ name: "", email, otp: "", password: "" });
+      setForm({
+        name: "",
+        email,
+        otp: "",
+        password: "",
+        dailyChallengeEmailOptIn: false,
+      });
       setMessage("Password updated. Please log in.");
     } catch (error) {
       setMessage(
@@ -650,7 +674,13 @@ function App() {
     goToPage("landing");
     setResetStep("email");
     setResetRequest(null);
-    setForm({ name: "", email: "", otp: "", password: "" });
+    setForm({
+      name: "",
+      email: "",
+      otp: "",
+      password: "",
+      dailyChallengeEmailOptIn: false,
+    });
     setMessage("");
   };
 
@@ -1181,7 +1211,13 @@ function App() {
             }
             setResetStep("email");
             setResetRequest(null);
-            setForm({ name: "", email: "", otp: "", password: "" });
+            setForm({
+              name: "",
+              email: "",
+              otp: "",
+              password: "",
+              dailyChallengeEmailOptIn: false,
+            });
             setMessage("");
           }}
           onChange={updateForm}
