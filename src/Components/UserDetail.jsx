@@ -1,6 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import javaCertificateImage from "../Imaige/certificate100.png";
+import { pageRoutes } from "../pageRoutes";
 import UserMenu from "./UserMenu";
 
 const getInitial = (name = "") => name.trim().charAt(0).toUpperCase() || "U";
@@ -10,6 +12,23 @@ const resumeTemplates = [
   { id: "classic", label: "Classic" },
   { id: "modern", label: "Modern" },
   { id: "compact", label: "Compact" },
+];
+
+const PROFILE_LANGUAGES = [
+  { label: "Python", key: "Python", icon: "Py", totalModules: 10 },
+  { label: "C++", key: "C++", icon: "C++", totalModules: 10 },
+  { label: "Java", key: "Java", icon: "Ja", totalModules: 10 },
+  { label: "Html", key: "Html", icon: "Ht", totalModules: 10 },
+  { label: "Css", key: "Css", icon: "Cs", totalModules: 10 },
+  { label: "JavaScript", key: "JavaScript", icon: "JS", totalModules: 10 },
+  { label: "Sql", key: "Sql", icon: "Sql", totalModules: 10 },
+];
+
+const BADGE_THRESHOLDS = [
+  { label: "Bronze", threshold: 50, color: "#cd7f32" },
+  { label: "Silver", threshold: 150, color: "#c0c0c0" },
+  { label: "Gold", threshold: 300, color: "#f4c542" },
+  { label: "Diamond", threshold: 1000, color: "#5ae4ff" },
 ];
 
 const getJavaSolvedCount = (user) => user.stats?.categories?.Java?.solved || 0;
@@ -22,6 +41,88 @@ const formatCertificateDate = (date = new Date()) =>
     .format(date)
     .replace(/\//g, "-");
 
+const getLocalDateKey = (value) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getActivityMap = (user) => {
+  const activityDates = Array.isArray(user?.activityDates)
+    ? user.activityDates
+    : Array.isArray(user?.stats?.activityDates)
+      ? user.stats.activityDates
+      : [];
+  const activityMap = new Map();
+
+  activityDates.forEach((value) => {
+    const dateKey = getLocalDateKey(value);
+
+    if (!dateKey) {
+      return;
+    }
+
+    activityMap.set(dateKey, (activityMap.get(dateKey) || 0) + 1);
+  });
+
+  return activityMap;
+};
+
+const getStreakSummary = (activityDates = []) => {
+  const dateSet = new Set(
+    activityDates
+      .map((value) => getLocalDateKey(value))
+      .filter(Boolean),
+  );
+
+  if (!dateSet.size) {
+    return { current: 0, longest: 0, todayActive: false };
+  }
+
+  const today = new Date();
+  const todayKey = getLocalDateKey(today);
+  const sorted = Array.from(dateSet).sort();
+  let current = 0;
+  let cursor = new Date(today);
+
+  while (dateSet.has(getLocalDateKey(cursor))) {
+    current += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let longest = 1;
+  let running = 1;
+
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previous = new Date(`${sorted[index - 1]}T00:00:00`);
+    const currentDate = new Date(`${sorted[index]}T00:00:00`);
+    const differenceInDays = Math.round(
+      (previous.getTime() - currentDate.getTime()) / 86400000,
+    );
+
+    if (differenceInDays === 1) {
+      running += 1;
+      longest = Math.max(longest, running);
+    } else {
+      running = 1;
+    }
+  }
+
+  return {
+    current,
+    longest,
+    todayActive: Boolean(todayKey && dateSet.has(todayKey)),
+  };
+};
+
 function UserDetail({
   section = "profile",
   user,
@@ -33,6 +134,7 @@ function UserDetail({
   onSaveProfile,
   onToggleTheme,
 }) {
+  const navigate = useNavigate();
   const [draft, setDraft] = useState({
     name: user.name,
     username: user.username || "",
@@ -53,6 +155,92 @@ function UserDetail({
     100,
     Math.round((javaSolvedCount / JAVA_CERTIFICATE_REQUIREMENT) * 100),
   );
+  const activityMap = useMemo(() => getActivityMap(user), [user]);
+  const streak = useMemo(
+    () => getStreakSummary(Array.from(activityMap.keys())),
+    [activityMap],
+  );
+  const totalActiveDays = useMemo(
+    () => Array.from(activityMap.values()).filter((count) => count > 0).length,
+    [activityMap],
+  );
+  const recentQuestions = useMemo(() => {
+    const maybeRecent = Array.isArray(user?.recentSolved)
+      ? user.recentSolved
+      : Array.isArray(user?.recentQuestions)
+        ? user.recentQuestions
+        : Array.isArray(stats?.recentSolved)
+          ? stats.recentSolved
+          : [];
+
+    return maybeRecent.slice(0, 5);
+  }, [stats, user]);
+
+  const solvedCount = Math.max(0, Number(stats.totalSolved || 0));
+  const totalCorrect = Math.max(0, Number(stats.totalCorrect || 0));
+  const completedQuizzes = Math.max(0, Number(stats.completedQuizzes || 0));
+  const accuracy = solvedCount > 0 ? Math.min(100, Math.round((totalCorrect / solvedCount) * 100)) : 0;
+  const availableCredits = Math.max(0, Math.floor(solvedCount / 3));
+  const nextCreditProgress = solvedCount % 3;
+  const nextBadgeIndex = BADGE_THRESHOLDS.findIndex(
+    (badge) => solvedCount < badge.threshold,
+  );
+  const currentBadge =
+    BADGE_THRESHOLDS.filter((badge) => solvedCount >= badge.threshold).at(-1) ||
+    { label: "No badge yet", threshold: 0, color: "#94a3b8" };
+  const nextBadge =
+    nextBadgeIndex >= 0 ? BADGE_THRESHOLDS[nextBadgeIndex] : null;
+  const badgeProgress = nextBadge
+    ? Math.min(100, Math.round((solvedCount / nextBadge.threshold) * 100))
+    : 100;
+  const badgeProgressRemaining = nextBadge
+    ? Math.max(0, nextBadge.threshold - solvedCount)
+    : 0;
+  const languageCards = useMemo(
+    () =>
+      PROFILE_LANGUAGES.map((language) => {
+        const categoryStats = stats.categories?.[language.key] || {};
+        const completed = Math.max(
+          0,
+          Math.min(
+            language.totalModules,
+            Math.round(Number(categoryStats.completed || categoryStats.solved || 0)),
+          ),
+        );
+        const percentage = language.totalModules
+          ? Math.min(100, Math.round((completed / language.totalModules) * 100))
+          : 0;
+
+        return {
+          ...language,
+          completed,
+          total: language.totalModules,
+          percentage,
+        };
+      }),
+    [stats.categories],
+  );
+  const heatmapCells = useMemo(() => {
+    const cells = [];
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() - 364);
+
+    for (let index = 0; index < 365; index += 1) {
+      const current = new Date(start);
+      current.setDate(start.getDate() + index);
+      const key = getLocalDateKey(current);
+      const count = activityMap.get(key) || 0;
+
+      cells.push({
+        date: current,
+        key,
+        count,
+      });
+    }
+
+    return cells;
+  }, [activityMap]);
   const contestLeaderboard = useMemo(
     () =>
       users
@@ -279,34 +467,315 @@ function UserDetail({
         <h1>{pageTitle}</h1>
 
         {section === "profile" && (
-          <>
-            {renderAvatar()}
-            <div className="detail-list profile-detail-grid" aria-label="User details">
-              <div>
-                <span>Username</span>
-                <strong>@{user.username}</strong>
+          <div className="profile-dashboard">
+            <section className="profile-header-card">
+              <div className="profile-header-main">
+                <div className="profile-avatar-wrap">{renderAvatar("profile-photo-large")}</div>
+                <div className="profile-header-text">
+                  <p className="eyebrow">CodeSniper profile</p>
+                  <h2>{user.name}</h2>
+                  <p className="profile-username">@{user.username || user.name}</p>
+                  <div className="profile-language-row">
+                    {languageCards.map((language) => (
+                      <span key={language.key} className="language-pill">
+                        {language.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="profile-header-actions">
+                  <button
+                    className="primary-action"
+                    onClick={() => navigate(pageRoutes.editProfile)}
+                    type="button"
+                  >
+                    Edit Profile
+                  </button>
+                  <button className="secondary-action" onClick={onBackToQuiz} type="button">
+                    Back to dashboard
+                  </button>
+                </div>
               </div>
-              <div>
-                <span>Name</span>
-                <strong>{user.name}</strong>
+
+              <div className="profile-summary-row">
+                <div>
+                  <span>Current Streak</span>
+                  <strong>{streak.current} days</strong>
+                </div>
+                <div>
+                  <span>Highest Badge</span>
+                  <strong>{currentBadge.label}</strong>
+                </div>
+                <div>
+                  <span>Registered Email</span>
+                  <strong>{user.email}</strong>
+                </div>
               </div>
-              <div>
-                <span>Email</span>
-                <strong>{user.email}</strong>
-              </div>
-              <div>
-                <span>Questions Solved</span>
-                <strong>{stats.totalSolved || 0}</strong>
-              </div>
-              <div>
-                <span>Correct Answers</span>
-                <strong>{stats.totalCorrect || 0}</strong>
-              </div>
-              <div>
-                <span>Completed Quizzes</span>
-                <strong>{stats.completedQuizzes || 0}</strong>
-              </div>
+            </section>
+
+            <div className="stat-grid">
+              {[
+                { label: "Total Problems Solved", value: solvedCount },
+                { label: "Correct Answers", value: totalCorrect },
+                { label: "Accuracy", value: `${accuracy}%` },
+                { label: "Completed Quizzes", value: completedQuizzes },
+                { label: "Current Streak", value: `${streak.current}d` },
+                { label: "Longest Streak", value: `${streak.longest}d` },
+                { label: "Total Active Days", value: totalActiveDays },
+                { label: "Available Solution Credits", value: availableCredits },
+              ].map((item) => (
+                <div className="stat-card" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
             </div>
+
+            <div className="profile-two-column">
+              <section className="profile-panel streak-panel">
+                <div className="panel-header">
+                  <h3>Coding Streak</h3>
+                  <span>{streak.todayActive ? "Active today" : "No activity today"}</span>
+                </div>
+                <div className="streak-highlight-row">
+                  <div>
+                    <small>Current streak</small>
+                    <strong>{streak.current} Days</strong>
+                  </div>
+                  <div>
+                    <small>Longest streak</small>
+                    <strong>{streak.longest} Days</strong>
+                  </div>
+                </div>
+                <div className="week-activity" aria-label="Weekly activity">
+                  {[
+                    "Mon",
+                    "Tue",
+                    "Wed",
+                    "Thu",
+                    "Fri",
+                    "Sat",
+                    "Sun",
+                  ].map((day) => (
+                    <span key={day} className="week-dot active">
+                      {day}
+                    </span>
+                  ))}
+                </div>
+                <p className="motivational-note">
+                  {streak.current > 0
+                    ? "Keep the momentum going — you are building a strong coding routine."
+                    : "Start today by solving one problem to build your streak."}
+                </p>
+              </section>
+
+              <section className="profile-panel badge-panel">
+                <div className="panel-header">
+                  <h3>Badges & Achievements</h3>
+                  <span>{currentBadge.label}</span>
+                </div>
+                <div className="badge-list">
+                  {BADGE_THRESHOLDS.map((badge) => {
+                    const unlocked = solvedCount >= badge.threshold;
+
+                    return (
+                      <div
+                        key={badge.label}
+                        className={`badge-tier ${unlocked ? "unlocked" : "locked"}`}
+                        style={{ borderColor: badge.color }}
+                      >
+                        <span className="badge-icon" style={{ background: badge.color }}>
+                          {badge.label[0]}
+                        </span>
+                        <div>
+                          <strong>{badge.label}</strong>
+                          <small>{badge.threshold} problems</small>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="badge-progress-block">
+                  <div className="progress-label-row">
+                    <span>Next badge</span>
+                    <strong>{nextBadge ? nextBadge.label : "Completed"}</strong>
+                  </div>
+                  <div className="progress-track">
+                    <span style={{ width: `${badgeProgress}%` }} />
+                  </div>
+                  <small>
+                    {nextBadge
+                      ? `${solvedCount} / ${nextBadge.threshold} problems toward ${nextBadge.label}`
+                      : "You have unlocked every badge."}
+                  </small>
+                  {nextBadge && (
+                    <small>
+                      {badgeProgressRemaining} more problems to unlock {nextBadge.label}
+                    </small>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <div className="profile-two-column">
+              <section className="profile-panel language-panel">
+                <div className="panel-header">
+                  <h3>Programming Language Progress</h3>
+                  <span>Modules</span>
+                </div>
+                <div className="language-card-list">
+                  {languageCards.map((language) => (
+                    <div className="language-card" key={language.key}>
+                      <div className="language-card-head">
+                        <div className="language-icon-box">{language.icon}</div>
+                        <div>
+                          <strong>{language.label}</strong>
+                          <span>{language.percentage}%</span>
+                        </div>
+                      </div>
+                      <div className="progress-track">
+                        <span style={{ width: `${language.percentage}%` }} />
+                      </div>
+                      <small>
+                        {language.completed} of {language.total} modules completed
+                      </small>
+                      <button
+                        className="secondary-action"
+                        onClick={() => navigate(pageRoutes.Practice || "/practice")}
+                        type="button"
+                      >
+                        Continue Learning
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="profile-panel credit-panel">
+                <div className="panel-header">
+                  <h3>Solution Credits</h3>
+                  <span>Credit rule</span>
+                </div>
+                <div className="credit-summary-row">
+                  <div>
+                    <small>Available Credits</small>
+                    <strong>{availableCredits}</strong>
+                  </div>
+                  <div>
+                    <small>Total Credits Earned</small>
+                    <strong>{availableCredits}</strong>
+                  </div>
+                  <div>
+                    <small>Total Credits Used</small>
+                    <strong>0</strong>
+                  </div>
+                </div>
+                <div className="credit-progress-block">
+                  <div className="progress-label-row">
+                    <span>Problems to next credit</span>
+                    <strong>{nextCreditProgress} / 3</strong>
+                  </div>
+                  <div className="progress-track">
+                    <span style={{ width: `${Math.min(100, (nextCreditProgress / 3) * 100)}%` }} />
+                  </div>
+                  <small>
+                    {nextCreditProgress === 0
+                      ? "You have earned your next credit."
+                      : `Solve ${3 - nextCreditProgress} more eligible problem${3 - nextCreditProgress === 1 ? "" : "s"} to earn your next credit.`}
+                  </small>
+                </div>
+              </section>
+            </div>
+
+            <section className="profile-panel heatmap-panel">
+              <div className="panel-header">
+                <h3>Submission Heatmap</h3>
+                <span>{totalActiveDays} active days</span>
+              </div>
+              {heatmapCells.length ? (
+                <>
+                  <div className="heatmap-grid" aria-label="Activity heatmap">
+                    {heatmapCells.map((cell) => {
+                      const colorClass =
+                        cell.count === 0
+                          ? "heatmap-empty"
+                          : cell.count <= 2
+                            ? "heatmap-low"
+                            : cell.count <= 4
+                              ? "heatmap-medium"
+                              : cell.count <= 6
+                                ? "heatmap-high"
+                                : "heatmap-very-high";
+
+                      return (
+                        <span
+                          key={cell.key}
+                          className={`heatmap-cell ${colorClass}`}
+                          title={`${cell.key}: ${cell.count} qualifying activity`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="heatmap-legend">
+                    <span>Low</span>
+                    <span className="legend-band legend-1" />
+                    <span className="legend-band legend-2" />
+                    <span className="legend-band legend-3" />
+                    <span className="legend-band legend-4" />
+                    <span className="legend-band legend-5" />
+                    <span>High</span>
+                  </div>
+                </>
+              ) : (
+                <div className="empty-state">No activity history yet. Start solving problems to unlock your heatmap.</div>
+              )}
+            </section>
+
+            <div className="profile-two-column">
+              <section className="profile-panel recent-panel">
+                <div className="panel-header">
+                  <h3>Recently Solved Questions</h3>
+                  <span>{recentQuestions.length} records</span>
+                </div>
+                {recentQuestions.length ? (
+                  <div className="recent-question-list">
+                    {recentQuestions.map((question, index) => (
+                      <div className="recent-question-row" key={`${question.title || "question"}-${index}`}>
+                        <div>
+                          <strong>{question.title || `Question ${index + 1}`}</strong>
+                          <small>{question.topic || "General"}</small>
+                        </div>
+                        <span>{question.difficulty || "N/A"}</span>
+                        <small>{question.date || question.solvedAt || "Recently"}</small>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">No recent accepted solutions yet.</div>
+                )}
+              </section>
+
+              <section className="profile-panel leaderboard-panel">
+                <div className="panel-header">
+                  <h3>{contestName} Leaderboard</h3>
+                  <span>Current result</span>
+                </div>
+                {showPublishedLeaderboard && contestLeaderboard.length ? (
+                  <div className="leaderboard-list">
+                    {contestLeaderboard.map((row, index) => (
+                      <div key={`${row.name}-${index}`} className="leaderboard-row">
+                        <span>#{index + 1}</span>
+                        <strong>{row.name}</strong>
+                        <small>{row.totalCorrect} correct</small>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">No contest data available yet.</div>
+                )}
+              </section>
+            </div>
+
             <label className="daily-email-preference">
               <input
                 checked={user.dailyChallengeEmailOptIn === true}
@@ -321,27 +790,12 @@ function UserDetail({
                 {message}
               </p>
             )}
-            {showPublishedLeaderboard && (
-              <div className="detail-list" aria-label="Published contest leaderboard">
-                <h2>{contestName} LeaderBoard</h2>
-                {contestLeaderboard.length ? (
-                  contestLeaderboard.map((row, index) => (
-                    <div key={`${row.name}-${index}`}>
-                      <strong>#{index + 1} {row.name}</strong>
-                      <span>{row.totalCorrect} correct | {row.avgTimePerQuestion.toFixed(2)}s avg</span>
-                    </div>
-                  ))
-                ) : (
-                  <p>No leaderboard data available yet.</p>
-                )}
-              </div>
-            )}
             <div className="result-actions">
               <button className="secondary-action" onClick={onLogout} type="button">
                 Logout
               </button>
             </div>
-          </>
+          </div>
         )}
 
         {section === "editProfile" && (
