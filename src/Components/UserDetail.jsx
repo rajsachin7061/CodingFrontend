@@ -5,6 +5,7 @@ import javaCertificateImage from "../Imaige/certificate100.png";
 import { pageRoutes } from "../pageRoutes";
 import UserMenu from "./UserMenu";
 
+
 const getInitial = (name = "") => name.trim().charAt(0).toUpperCase() || "U";
 const JAVA_CERTIFICATE_REQUIREMENT = 100;
 
@@ -15,7 +16,7 @@ const resumeTemplates = [
 ];
 
 const PROFILE_LANGUAGES = [
-  { label: "Python", key: "Python", icon: "Py", totalModules: 10 },
+  { label: "Python", key: "Python", icon: "Python", totalModules: 10 },
   { label: "C++", key: "C++", icon: "C++", totalModules: 10 },
   { label: "Java", key: "Java", icon: "Ja", totalModules: 10 },
   { label: "Html", key: "Html", icon: "Ht", totalModules: 10 },
@@ -144,6 +145,7 @@ function UserDetail({
   });
   const [message, setMessage] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
+  const [heatmapRangeMonths, setHeatmapRangeMonths] = useState(6);
   const saveInFlight = useRef(false);
   const stats = user.stats || {};
   const contestName = (contestSettings?.contestName || "Weekly Contest").trim();
@@ -196,6 +198,25 @@ function UserDetail({
   const badgeProgressRemaining = nextBadge
     ? Math.max(0, nextBadge.threshold - solvedCount)
     : 0;
+  const unlockedBadges = BADGE_THRESHOLDS.filter(
+    (badge) => solvedCount >= badge.threshold,
+  );
+  const recentDifficultyCounts = useMemo(() => {
+    const recent = Array.isArray(user?.recentSolved) ? user.recentSolved : [];
+
+    return recent.reduce(
+      (counts, item) => {
+        const difficulty = String(item.difficulty || "").toLowerCase();
+
+        if (difficulty === "easy") counts.easy += 1;
+        if (difficulty === "medium") counts.medium += 1;
+        if (difficulty === "hard") counts.hard += 1;
+
+        return counts;
+      },
+      { easy: 0, medium: 0, hard: 0, total: recent.length },
+    );
+  }, [user?.recentSolved]);
   const languageCards = useMemo(
     () =>
       PROFILE_LANGUAGES.map((language) => {
@@ -220,27 +241,64 @@ function UserDetail({
       }),
     [stats.categories],
   );
-  const heatmapCells = useMemo(() => {
-    const cells = [];
+  const heatmapWeeks = useMemo(() => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const start = new Date(today);
-    start.setDate(start.getDate() - 364);
+    const originalDay = start.getDate();
+    start.setDate(1);
+    start.setMonth(start.getMonth() - heatmapRangeMonths);
+    start.setDate(
+      Math.min(
+        originalDay,
+        new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate(),
+      ),
+    );
 
-    for (let index = 0; index < 365; index += 1) {
-      const current = new Date(start);
-      current.setDate(start.getDate() + index);
-      const key = getLocalDateKey(current);
-      const count = activityMap.get(key) || 0;
+    const gridStart = new Date(start);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+    const gridEnd = new Date(today);
+    gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
 
-      cells.push({
-        date: current,
-        key,
-        count,
+    const weeks = [];
+    const monthLabels = [];
+    let previousMonth = "";
+
+    for (
+      let weekStart = new Date(gridStart);
+      weekStart <= gridEnd;
+      weekStart.setDate(weekStart.getDate() + 7)
+    ) {
+      const week = Array.from({ length: 7 }, (_, dayIndex) => {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + dayIndex);
+        const key = getLocalDateKey(date);
+        const inRange = date >= start && date <= today;
+        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+
+        if (inRange && monthKey !== previousMonth) {
+          monthLabels.push({
+            weekIndex: weeks.length,
+            label: new Intl.DateTimeFormat("en", { month: "short" }).format(date),
+          });
+          previousMonth = monthKey;
+        }
+
+        return {
+          key,
+          count: inRange ? activityMap.get(key) || 0 : 0,
+          inRange,
+        };
       });
+      weeks.push(week);
     }
 
-    return cells;
-  }, [activityMap]);
+    return {
+      weeks,
+      monthLabels,
+      activeDays: weeks.flat().filter((cell) => cell.inRange && cell.count > 0).length,
+    };
+  }, [activityMap, heatmapRangeMonths]);
   const contestLeaderboard = useMemo(
     () =>
       users
@@ -449,7 +507,7 @@ function UserDetail({
   }[section];
 
   return (
-    <main className={`quiz-shell auth-shell ${theme}-theme`}>
+    <main className={`quiz-shell auth-shell ${section === "profile" ? "profile-shell" : ""} ${theme}-theme`}>
       <header className="user-bar" aria-label="Signed in user">
         <span>Hi, {user.name}</span>
         <div className="user-actions">
@@ -462,25 +520,26 @@ function UserDetail({
         </div>
       </header>
 
-      <section className="result-panel user-detail-panel">
-        <p className="eyebrow">Account</p>
-        <h1>{pageTitle}</h1>
+      <section className={`result-panel user-detail-panel ${section === "profile" ? "profile-result-panel" : ""}`}>
+        {section === "profile" ? (
+          <h1 className="profile-page-title">My Profile</h1>
+        ) : (
+          <>
+            <p className="eyebrow">Account</p>
+            <h1>{pageTitle}</h1>
+          </>
+        )}
 
         {section === "profile" && (
           <div className="profile-dashboard">
-            <section className="profile-header-card">
-              <div className="profile-header-main">
-                <div className="profile-avatar-wrap">{renderAvatar("profile-photo-large")}</div>
-                <div className="profile-header-text">
-                  <p className="eyebrow">CodeSniper profile</p>
-                  <h2>{user.name}</h2>
-                  <p className="profile-username">@{user.username || user.name}</p>
-                  <div className="profile-language-row">
-                    {languageCards.map((language) => (
-                      <span key={language.key} className="language-pill">
-                        {language.label}
-                      </span>
-                    ))}
+            <div className="profile-overview-grid">
+              <section className="profile-overview-card profile-identity-card">
+                <div className="profile-identity">
+                  <div className="profile-avatar-wrap">{renderAvatar("profile-photo-large")}</div>
+                  <div className="profile-header-text">
+                    <p className="eyebrow">CodeSniper profile</p>
+                    <h2>{user.name}</h2>
+                    <p className="profile-username">@{user.username || user.name}</p>
                   </div>
                 </div>
                 <div className="profile-header-actions">
@@ -495,25 +554,66 @@ function UserDetail({
                     Back to dashboard
                   </button>
                 </div>
-              </div>
+                <div className="profile-identity-meta">
+                  <span>{user.email}</span>
+                  <span>{streak.current} day{streak.current === 1 ? "" : "s"} current streak</span>
+                </div>
+              </section>
 
-              <div className="profile-summary-row">
-                <div>
-                  <span>Current Streak</span>
-                  <strong>{streak.current} days</strong>
+              <section className="profile-overview-card profile-solved-card">
+                <div
+                  className="profile-solved-ring"
+                  style={{
+                    "--profile-solved-progress": `${badgeProgress}%`,
+                    "--profile-solved-midpoint": `${badgeProgress / 2}%`,
+                  }}
+                  role="img"
+                  aria-label={`${solvedCount} coding problems solved; ${badgeProgress}% progress toward the next badge`}
+                >
+                  <div className="profile-solved-ring-center">
+                    <strong>{solvedCount}</strong>
+                    <span>Solved</span>
+                  </div>
                 </div>
-                <div>
-                  <span>Highest Badge</span>
-                  <strong>{currentBadge.label}</strong>
+                <div className="profile-difficulty-summary">
+                  <p>Recent accepted</p>
+                  {[
+                    { label: "Easy", value: recentDifficultyCounts.easy, className: "easy" },
+                    { label: "Medium", value: recentDifficultyCounts.medium, className: "medium" },
+                    { label: "Hard", value: recentDifficultyCounts.hard, className: "hard" },
+                  ].map((item) => (
+                    <div className="profile-difficulty-row" key={item.label}>
+                      <span className={item.className}>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                  <small>From your {recentDifficultyCounts.total} latest accepted submissions</small>
                 </div>
-                <div>
-                  <span>Registered Email</span>
-                  <strong>{user.email}</strong>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <div className="stat-grid">
+              <section className="profile-overview-card profile-badges-card">
+                <div className="profile-badge-count">
+                  <span>Badges</span>
+                  <strong>{unlockedBadges.length}</strong>
+                </div>
+                <div className="profile-next-badge">
+                  <span className="profile-next-badge-icon" aria-hidden="true">
+                    {nextBadge ? nextBadge.label[0] : currentBadge.label[0]}
+                  </span>
+                  <div>
+                    <small>{nextBadge ? "Locked badge" : "Highest badge"}</small>
+                    <strong>{nextBadge ? nextBadge.label : currentBadge.label}</strong>
+                    <small>
+                      {nextBadge
+                        ? `${badgeProgressRemaining} more accepted ${badgeProgressRemaining === 1 ? "solution" : "solutions"} to unlock`
+                        : "All badges unlocked"}
+                    </small>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* <div className="stat-grid">
               {[
                 { label: "Total Problems Solved", value: solvedCount },
                 { label: "Correct Answers", value: totalCorrect },
@@ -529,7 +629,7 @@ function UserDetail({
                   <strong>{item.value}</strong>
                 </div>
               ))}
-            </div>
+            </div> */}
 
             <div className="profile-two-column">
               <section className="profile-panel streak-panel">
@@ -617,7 +717,7 @@ function UserDetail({
               </section>
             </div>
 
-            <div className="profile-two-column">
+            <div className="profile-two-column profile-language-layout">
               <section className="profile-panel language-panel">
                 <div className="panel-header">
                   <h3>Programming Language Progress</h3>
@@ -626,32 +726,41 @@ function UserDetail({
                 <div className="language-card-list">
                   {languageCards.map((language) => (
                     <div className="language-card" key={language.key}>
-                      <div className="language-card-head">
-                        <div className="language-icon-box">{language.icon}</div>
-                        <div>
-                          <strong>{language.label}</strong>
-                          <span>{language.percentage}%</span>
+                      <div className="language-icon-box" aria-hidden="true">
+                        {language.icon}
+                      </div>
+                      <div className="language-card-content">
+                        <div className="language-card-head">
+                          <strong>Practice {language.label}</strong>
+                          <span>{language.percentage}% Completed</span>
                         </div>
+                        <div
+                          className="progress-track language-progress-track"
+                          role="progressbar"
+                          aria-label={`${language.label} modules completed`}
+                          aria-valuemin={0}
+                          aria-valuemax={language.total}
+                          aria-valuenow={language.completed}
+                        >
+                          <span style={{ width: `${language.percentage}%` }} />
+                        </div>
+                        <small>
+                          {language.completed} of {language.total} modules completed
+                        </small>
                       </div>
-                      <div className="progress-track">
-                        <span style={{ width: `${language.percentage}%` }} />
-                      </div>
-                      <small>
-                        {language.completed} of {language.total} modules completed
-                      </small>
                       <button
                         className="secondary-action"
                         onClick={() => navigate(pageRoutes.Practice || "/practice")}
                         type="button"
                       >
-                        Continue Learning
+                        Continue
                       </button>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="profile-panel credit-panel">
+              {/* <section className="profile-panel credit-panel">
                 <div className="panel-header">
                   <h3>Solution Credits</h3>
                   <span>Credit rule</span>
@@ -684,51 +793,83 @@ function UserDetail({
                       : `Solve ${3 - nextCreditProgress} more eligible problem${3 - nextCreditProgress === 1 ? "" : "s"} to earn your next credit.`}
                   </small>
                 </div>
-              </section>
+              </section> */}
             </div>
 
             <section className="profile-panel heatmap-panel">
               <div className="panel-header">
-                <h3>Submission Heatmap</h3>
-                <span>{totalActiveDays} active days</span>
+                <h3>Submissions Heat Map</h3>
+                <select
+                  className="heatmap-range"
+                  aria-label="Heatmap time range"
+                  value={heatmapRangeMonths}
+                  onChange={(event) => setHeatmapRangeMonths(Number(event.target.value))}
+                >
+                  <option value={3}>Last 3 Months</option>
+                  <option value={6}>Last 6 Months</option>
+                  <option value={12}>Last 12 Months</option>
+                </select>
               </div>
-              {heatmapCells.length ? (
-                <>
-                  <div className="heatmap-grid" aria-label="Activity heatmap">
-                    {heatmapCells.map((cell) => {
-                      const colorClass =
-                        cell.count === 0
-                          ? "heatmap-empty"
-                          : cell.count <= 2
-                            ? "heatmap-low"
-                            : cell.count <= 4
-                              ? "heatmap-medium"
-                              : cell.count <= 6
-                                ? "heatmap-high"
-                                : "heatmap-very-high";
+              <div
+                className="heatmap-calendar"
+                role="img"
+                aria-label={`Activity heatmap for the last ${heatmapRangeMonths} months. ${heatmapWeeks.activeDays} active days.`}
+              >
+                <div className="heatmap-weekday-labels" aria-hidden="true">
+                  {["Sun", "", "Tue", "", "Thu", "", "Sat"].map((day, index) => (
+                    <span key={index}>{day}</span>
+                  ))}
+                </div>
+                <div className="heatmap-calendar-content">
+                  <div
+                    className="heatmap-grid"
+                    style={{ "--heatmap-week-count": heatmapWeeks.weeks.length }}
+                  >
+                    {heatmapWeeks.weeks.map((week, weekIndex) => (
+                      <div className="heatmap-week" key={weekIndex}>
+                        {week.map((cell) => {
+                          const colorClass =
+                            !cell.inRange || cell.count === 0
+                              ? "heatmap-empty"
+                              : cell.count <= 2
+                                ? "heatmap-low"
+                                : cell.count <= 4
+                                  ? "heatmap-medium"
+                                  : cell.count <= 6
+                                    ? "heatmap-high"
+                                    : "heatmap-very-high";
 
-                      return (
-                        <span
-                          key={cell.key}
-                          className={`heatmap-cell ${colorClass}`}
-                          title={`${cell.key}: ${cell.count} qualifying activity`}
-                        />
-                      );
-                    })}
+                          return (
+                            <span
+                              key={cell.key}
+                              className={`heatmap-cell ${colorClass}`}
+                              title={
+                                cell.inRange
+                                  ? `${cell.key}: ${cell.count} qualifying activity`
+                                  : undefined
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
-                  <div className="heatmap-legend">
-                    <span>Low</span>
-                    <span className="legend-band legend-1" />
-                    <span className="legend-band legend-2" />
-                    <span className="legend-band legend-3" />
-                    <span className="legend-band legend-4" />
-                    <span className="legend-band legend-5" />
-                    <span>High</span>
+                  <div
+                    className="heatmap-month-labels"
+                    style={{ "--heatmap-week-count": heatmapWeeks.weeks.length }}
+                    aria-hidden="true"
+                  >
+                    {heatmapWeeks.monthLabels.map((month) => (
+                      <span
+                        key={`${month.weekIndex}-${month.label}`}
+                        style={{ gridColumnStart: month.weekIndex + 1 }}
+                      >
+                        {month.label}
+                      </span>
+                    ))}
                   </div>
-                </>
-              ) : (
-                <div className="empty-state">No activity history yet. Start solving problems to unlock your heatmap.</div>
-              )}
+                </div>
+              </div>
             </section>
 
             <div className="profile-two-column">
@@ -775,6 +916,25 @@ function UserDetail({
                 )}
               </section>
             </div>
+
+            <div className="stat-grid">
+              {[
+                { label: "Total Problems Solved", value: solvedCount },
+                { label: "Correct Answers", value: totalCorrect },
+                { label: "Accuracy", value: `${accuracy}%` },
+                { label: "Completed Quizzes", value: completedQuizzes },
+                { label: "Current Streak", value: `${streak.current}d` },
+                { label: "Longest Streak", value: `${streak.longest}d` },
+                { label: "Total Active Days", value: totalActiveDays },
+                { label: "Available Solution Credits", value: availableCredits },
+              ].map((item) => (
+                <div className="stat-card" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+
 
             <label className="daily-email-preference">
               <input
