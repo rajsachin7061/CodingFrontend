@@ -10,6 +10,7 @@ import Problems from "./Components/Problems.jsx";
 import Practice from "./Components/Practicesheet.jsx";
 import Game from "./Components/Game.jsx";
 import StartQuiz1 from "./Components/Quiz/StartQuiz.jsx";
+import SEOManager from "./Components/Seomanager.jsx";
 
 import {
   Navigate,
@@ -1257,6 +1258,8 @@ function App() {
   );
 
   return (
+    <>
+    <SEOManager />
     <Routes>
       <Route path="/" element={currentPage} />
       <Route path="/index.html" element={currentPage} />
@@ -1346,6 +1349,7 @@ function App() {
         }
       />
     </Routes>
+    </>
   );
 }
 
