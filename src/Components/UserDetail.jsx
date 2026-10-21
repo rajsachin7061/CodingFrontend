@@ -182,7 +182,14 @@ function UserDetail({
   const totalCorrect = Math.max(0, Number(stats.totalCorrect || 0));
   const completedQuizzes = Math.max(0, Number(stats.completedQuizzes || 0));
   const accuracy = solvedCount > 0 ? Math.min(100, Math.round((totalCorrect / solvedCount) * 100)) : 0;
-  const availableCredits = Math.max(0, Math.floor(solvedCount / 3));
+  const storedAvailableCredits = Number(stats.availableSolutionCredits);
+  const availableCredits = Math.max(
+    0,
+    Number.isFinite(storedAvailableCredits)
+      ? storedAvailableCredits
+      : Math.floor(solvedCount / 3) -
+          Math.max(0, Number(stats.solutionCreditsUsed) || 0),
+  );
   const nextCreditProgress = solvedCount % 3;
   const nextBadgeIndex = BADGE_THRESHOLDS.findIndex(
     (badge) => solvedCount < badge.threshold,

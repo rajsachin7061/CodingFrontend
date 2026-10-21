@@ -10,9 +10,10 @@ const CONNECTION_ERROR_MESSAGE =
 const REQUEST_TIMEOUT_MS = 30000;
 
 export const apiFetch = async (path, options = {}) => {
+  const { timeoutMs = REQUEST_TIMEOUT_MS, ...fetchOptions } = options;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const externalSignal = options.signal;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const externalSignal = fetchOptions.signal;
   const abortFromExternalSignal = () => controller.abort();
 
   if (externalSignal) {
@@ -27,7 +28,7 @@ export const apiFetch = async (path, options = {}) => {
 
   try {
     return await fetch(apiUrl(path), {
-      ...options,
+      ...fetchOptions,
       signal: controller.signal,
     });
   } catch (error) {

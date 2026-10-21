@@ -575,6 +575,30 @@
   color: #be123c;
 }
 
+.solution-credit-gate {
+  background: #f7f9fd;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.solution-credit-gate p {
+  color: var(--ink-500);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.solution-credit-gate .solution-credit-balance {
+  color: var(--ink-900);
+  font-weight: 700;
+}
+
+.solution-credit-gate .solution-credit-error {
+  color: #be123c;
+}
+
 .tab-content-section {
   display: grid;
   gap: 18px;
@@ -784,6 +808,77 @@
 
 .ai-message.assistant {
   justify-self: start;
+}
+
+.ai-markdown {
+  color: var(--ink-700);
+  display: grid;
+  gap: 10px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.ai-markdown > * {
+  margin: 0;
+}
+
+.ai-markdown h3 {
+  color: var(--ink-900);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.ai-markdown ul,
+.ai-markdown ol {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.4rem;
+}
+
+.ai-markdown code {
+  background: #e9edf5;
+  border-radius: 4px;
+  color: var(--accent-primary-dark);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 1px 5px;
+}
+
+.ai-markdown pre {
+  background: var(--ink-900);
+  border-radius: var(--radius-sm);
+  color: #c9f7e6;
+  overflow-x: auto;
+  padding: 12px;
+}
+
+.ai-markdown pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.ai-markdown-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ai-markdown table {
+  border-collapse: collapse;
+  min-width: 100%;
+  text-align: left;
+}
+
+.ai-markdown th,
+.ai-markdown td {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 7px 10px;
+  vertical-align: top;
+}
+
+.ai-markdown th {
+  color: var(--ink-900);
+  font-weight: 700;
 }
 
 .ai-input-form {
