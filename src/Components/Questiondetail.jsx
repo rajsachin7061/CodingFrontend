@@ -73,6 +73,190 @@ const getFirstSampleInput = (problem) => {
   return sampleInput == null ? "" : String(sampleInput);
 };
 
+const renderInlineMarkdown = (text, keyPrefix) =>
+  text
+    .split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g)
+    .filter(Boolean)
+    .map((part, index) => {
+      const key = `${keyPrefix}-${index}`;
+
+      if (part.startsWith("`") && part.endsWith("`")) {
+        return <code key={key}>{part.slice(1, -1)}</code>;
+      }
+
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={key}>{part.slice(2, -2)}</strong>;
+      }
+
+      if (part.startsWith("*") && part.endsWith("*")) {
+        return <em key={key}>{part.slice(1, -1)}</em>;
+      }
+
+      return part;
+    });
+
+const splitMarkdownTableRow = (line) =>
+  line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+
+const isMarkdownTableSeparator = (line) =>
+  splitMarkdownTableRow(line).every((cell) => /^:?-{3,}:?$/.test(cell));
+
+const isMarkdownListItem = (line) => /^\s*(?:[-*+]|\d+\.)\s+/.test(line);
+
+const renderAssistantMarkdown = (content) => {
+  const lines = String(content || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index].trim();
+
+    if (!line) {
+      index += 1;
+      continue;
+    }
+
+    if (line.startsWith("```")) {
+      const language = line.slice(3).trim();
+      const codeLines = [];
+      index += 1;
+
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+
+      index += 1;
+      blocks.push(
+        <pre key={`code-${blocks.length}`}>
+          <code className={language ? `language-${language}` : undefined}>
+            {codeLines.join("\n")}
+          </code>
+        </pre>,
+      );
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      const Heading = `h${Math.min(3, heading[1].length)}`;
+      blocks.push(
+        <Heading key={`heading-${blocks.length}`}>
+          {renderInlineMarkdown(heading[2], `heading-${blocks.length}`)}
+        </Heading>,
+      );
+      index += 1;
+      continue;
+    }
+
+    if (
+      line.includes("|") &&
+      index + 1 < lines.length &&
+      isMarkdownTableSeparator(lines[index + 1].trim())
+    ) {
+      const headers = splitMarkdownTableRow(line);
+      const rows = [];
+      index += 2;
+
+      while (index < lines.length && lines[index].trim().includes("|")) {
+        rows.push(splitMarkdownTableRow(lines[index].trim()));
+        index += 1;
+      }
+
+      blocks.push(
+        <div className="ai-markdown-table-wrap" key={`table-${blocks.length}`}>
+          <table>
+            <thead>
+              <tr>
+                {headers.map((cell, cellIndex) => (
+                  <th key={`header-${cellIndex}`}>
+                    {renderInlineMarkdown(cell, `table-head-${cellIndex}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`}>
+                  {headers.map((_, cellIndex) => (
+                    <td key={`cell-${cellIndex}`}>
+                      {renderInlineMarkdown(
+                        row[cellIndex] || "",
+                        `table-${rowIndex}-${cellIndex}`,
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+
+    if (isMarkdownListItem(line)) {
+      const ordered = /^\d+\./.test(line);
+      const items = [];
+
+      while (
+        index < lines.length &&
+        isMarkdownListItem(lines[index].trim()) &&
+        /^\d+\./.test(lines[index].trim()) === ordered
+      ) {
+        items.push(lines[index].trim().replace(/^(?:[-*+]|\d+\.)\s+/, ""));
+        index += 1;
+      }
+
+      const List = ordered ? "ol" : "ul";
+      blocks.push(
+        <List key={`list-${blocks.length}`}>
+          {items.map((item, itemIndex) => (
+            <li key={`item-${itemIndex}`}>
+              {renderInlineMarkdown(item, `list-${blocks.length}-${itemIndex}`)}
+            </li>
+          ))}
+        </List>,
+      );
+      continue;
+    }
+
+    const paragraph = [line];
+    index += 1;
+    while (index < lines.length && lines[index].trim()) {
+      const next = lines[index].trim();
+      if (
+        next.startsWith("```") ||
+        /^(#{1,6})\s+/.test(next) ||
+        isMarkdownListItem(next) ||
+        (next.includes("|") &&
+          index + 1 < lines.length &&
+          isMarkdownTableSeparator(lines[index + 1].trim()))
+      ) {
+        break;
+      }
+      paragraph.push(next);
+      index += 1;
+    }
+
+    blocks.push(
+      <p key={`paragraph-${blocks.length}`}>
+        {renderInlineMarkdown(
+          paragraph.join(" "),
+          `paragraph-${blocks.length}`,
+        )}
+      </p>,
+    );
+  }
+
+  return blocks;
+};
+
 const DetailSection = ({ title, children }) => {
   if (!children) return null;
 
@@ -116,6 +300,11 @@ const Questiondetail = ({
   });
   const [submissionsRefreshKey, setSubmissionsRefreshKey] = useState(0);
   const [unlockedHints, setUnlockedHints] = useState(1);
+  const [solutionUnlockState, setSolutionUnlockState] = useState({
+    key: "",
+    status: "idle",
+    message: "",
+  });
   const [selectedSolutionKey, setSelectedSolutionKey] = useState("");
   const [aiMessages, setAiMessages] = useState([]);
   const [aiInput, setAiInput] = useState("");
@@ -327,10 +516,35 @@ const Questiondetail = ({
   const starterEntries = starterLanguages.filter(
     ([key]) => problem?.starterCode?.[key],
   );
-  const solutionEntries = getSolutionEntries(problem?.solution);
+  const solutionUnlockKey = `${questionSource}:${problemId}`;
+  const isUnlockingSolution =
+    solutionUnlockState.key === solutionUnlockKey &&
+    solutionUnlockState.status === "loading";
+  const unlockedSolution =
+    solutionUnlockState.key === solutionUnlockKey &&
+    solutionUnlockState.status === "ready"
+      ? solutionUnlockState
+      : null;
+  const solutionEntries = getSolutionEntries(unlockedSolution?.solution);
   const selectedSolution =
     solutionEntries.find(([key]) => key === selectedSolutionKey) ||
     solutionEntries[0];
+  const earnedCredits = Math.floor(
+    Math.max(0, Number(user?.stats?.totalSolved) || 0) / 3,
+  );
+  const usedCredits = Math.max(
+    0,
+    Number(user?.stats?.solutionCreditsUsed) || 0,
+  );
+  const profileAvailableCredits = Number(
+    user?.stats?.availableSolutionCredits,
+  );
+  const availableCredits =
+    typeof unlockedSolution?.availableCredits === "number"
+      ? unlockedSolution.availableCredits
+      : Number.isFinite(profileAvailableCredits)
+        ? Math.max(0, profileAvailableCredits)
+        : Math.max(0, earnedCredits - usedCredits);
   const hints = normalizeHints(problem?.hints);
   const visibleHints = hints.slice(0, Math.max(1, unlockedHints));
   const hiddenTestCaseCount =
@@ -354,6 +568,7 @@ const Questiondetail = ({
     try {
       const response = await apiFetch("/api/ai/problem-help", {
         method: "POST",
+        timeoutMs: 65000,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           problemId,
@@ -364,12 +579,17 @@ const Questiondetail = ({
             ? {
                 title: problem.title,
                 programmingLanguage: problem.programmingLanguage,
+                programmingLanguageKey: String(
+                  problem.programmingLanguage || "",
+                ).toLowerCase(),
                 difficulty: problem.difficulty,
                 description: problem.description,
                 inputFormat: problem.inputFormat,
                 outputFormat: problem.outputFormat,
                 constraints: problem.constraints,
                 tags: problem.tags || [],
+                starterCode: problem.starterCode || {},
+                sampleTestCases: problem.sampleTestCases || [],
               }
             : null,
         }),
@@ -395,6 +615,67 @@ const Questiondetail = ({
       setAiState({
         status: "error",
         message: error?.message || "AI Help is currently unavailable.",
+      });
+    }
+  };
+
+  const unlockSolution = async () => {
+    if (!user?.email || isUnlockingSolution) return;
+
+    setSolutionUnlockState({
+      key: solutionUnlockKey,
+      status: "loading",
+      message: "",
+    });
+
+    try {
+      const endpoint =
+        questionSource === "practice"
+          ? `/api/practice-question-data/${encodeURIComponent(
+              problemId,
+            )}/unlock-solution`
+          : `/api/problems/${encodeURIComponent(problemId)}/unlock-solution`;
+      const response = await apiFetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setSolutionUnlockState({
+          key: solutionUnlockKey,
+          status: "error",
+          message: payload.message || "Could not unlock the solution.",
+          availableCredits:
+            typeof payload.availableCredits === "number"
+              ? payload.availableCredits
+              : undefined,
+        });
+        return;
+      }
+
+      const entries = getSolutionEntries(payload.solution);
+      const preferredKey =
+        entries.find(
+          ([key]) =>
+            key.toLowerCase() ===
+            String(problem?.programmingLanguage || "").toLowerCase(),
+        )?.[0] ||
+        entries[0]?.[0] ||
+        "";
+      setSelectedSolutionKey(preferredKey);
+      setSolutionUnlockState({
+        key: solutionUnlockKey,
+        status: "ready",
+        message: "",
+        ...payload,
+      });
+    } catch (error) {
+      setSolutionUnlockState({
+        key: solutionUnlockKey,
+        status: "error",
+        message: error?.message || "Could not unlock the solution.",
       });
     }
   };
@@ -572,7 +853,7 @@ const Questiondetail = ({
       return <TabStateMessage>Loading solution...</TabStateMessage>;
     }
 
-    if (!solutionEntries.length && !problem?.explanation) {
+    if (problem?.hasSolution === false) {
       return (
         <TabStateMessage>
           No solution is available for this problem.
@@ -587,36 +868,74 @@ const Questiondetail = ({
           <p>Official explanation and reference solution.</p>
         </div>
 
-        {problem?.explanation && (
-          <div className="solution-explanation">
-            <h3>Explanation</h3>
-            <p>{problem.explanation}</p>
-          </div>
-        )}
-
-        {solutionEntries.length > 0 && (
-          <div className="solution-code-panel">
-            {solutionEntries.length > 1 && (
-              <label>
-                Language
-                <select
-                  onChange={(event) =>
-                    setSelectedSolutionKey(event.target.value)
-                  }
-                  value={selectedSolutionKey}
-                >
-                  {solutionEntries.map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        {!unlockedSolution ? (
+          <div className="solution-credit-gate">
+            <p>
+              Unlock this solution for 1 credit. Your solution credits are
+              earned by solving 3 problems, and each solution only costs a
+              credit the first time you unlock it.
+            </p>
+            <p className="solution-credit-balance">
+              Available solution credits:{" "}
+              {solutionUnlockState.key === solutionUnlockKey &&
+              typeof solutionUnlockState.availableCredits === "number"
+                ? solutionUnlockState.availableCredits
+                : availableCredits}
+            </p>
+            {solutionUnlockState.key === solutionUnlockKey &&
+              solutionUnlockState.status === "error" && (
+                <p className="solution-credit-error" role="alert">
+                  {solutionUnlockState.message}
+                </p>
+              )}
+            {!user?.email && (
+              <p className="solution-credit-error" role="alert">
+                Sign in to use solution credits.
+              </p>
             )}
-            <pre>
-              <code>{selectedSolution?.[2]}</code>
-            </pre>
+            <button
+              className="next-button"
+              disabled={!user?.email || isUnlockingSolution}
+              onClick={unlockSolution}
+              type="button"
+            >
+              {isUnlockingSolution ? "Unlocking..." : "Unlock Solution (1 Credit)"}
+            </button>
           </div>
+        ) : (
+          <>
+            {unlockedSolution.explanation && (
+              <div className="solution-explanation">
+                <h3>Explanation</h3>
+                <p>{unlockedSolution.explanation}</p>
+              </div>
+            )}
+
+            {solutionEntries.length > 0 && (
+              <div className="solution-code-panel">
+                {solutionEntries.length > 1 && (
+                  <label>
+                    Language
+                    <select
+                      onChange={(event) =>
+                        setSelectedSolutionKey(event.target.value)
+                      }
+                      value={selectedSolutionKey}
+                    >
+                      {solutionEntries.map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <pre>
+                  <code>{selectedSolution?.[2]}</code>
+                </pre>
+              </div>
+            )}
+          </>
         )}
       </section>
     );
@@ -671,13 +990,6 @@ const Questiondetail = ({
         <p>Ask about the current problem, your approach, or an error.</p>
       </div>
 
-      {aiState.status === "idle" && !aiMessages.length && (
-        <TabStateMessage type="error">
-          AI Help is currently unavailable until the backend implements POST
-          /api/ai/problem-help.
-        </TabStateMessage>
-      )}
-
       {status === "loading" && (
         <TabStateMessage>Preparing AI Help...</TabStateMessage>
       )}
@@ -717,14 +1029,20 @@ const Questiondetail = ({
             key={`${chatMessage.role}-${index}`}
           >
             <span>{chatMessage.role === "user" ? "You" : "AI"}</span>
-            <p>{chatMessage.content}</p>
+            {chatMessage.role === "assistant" ? (
+              <div className="ai-markdown">
+                {renderAssistantMarkdown(chatMessage.content)}
+              </div>
+            ) : (
+              <p>{chatMessage.content}</p>
+            )}
           </article>
         ))}
 
         {aiState.status === "loading" && (
           <article className="ai-message assistant">
             <span>AI</span>
-            <p>Preparing AI Help...</p>
+            <p>Analyzing..</p>
           </article>
         )}
         <div ref={aiMessagesEndRef} />
