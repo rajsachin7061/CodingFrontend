@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../api";
+import UpgradeModal from "../features/premium/UpgradeModal";
 import "./Questiondetail.css";
 
 const CodeCompiler = lazy(() => import("./CodeCompiler.jsx"));
@@ -99,6 +100,7 @@ const Questiondetail = ({
   const [problem, setProblem] = useState(null);
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
+  const [lockedModule, setLockedModule] = useState("");
   const [reloadAttempt, setReloadAttempt] = useState(0);
   const [activeTab, setActiveTab] = useState("Statement");
   const [isCustomInputOpen, setIsCustomInputOpen] = useState(false);
@@ -209,6 +211,9 @@ const Questiondetail = ({
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
+          if (payload.code === "PREMIUM_REQUIRED") {
+            setLockedModule(payload.module || "Premium");
+          }
           throw new Error(payload.message || "Could not load this problem.");
         }
         if (!payload || typeof payload !== "object" || !payload.id) {
@@ -217,6 +222,7 @@ const Questiondetail = ({
 
         if (!isCancelled) {
           setProblem(payload);
+          setLockedModule("");
           setStatus("ready");
         }
       } catch (error) {
@@ -951,6 +957,12 @@ const Questiondetail = ({
         {/* //   </section> */}
         {/* // </div> */}
       {/* // )} */}
+      {lockedModule && (
+        <UpgradeModal
+          module={lockedModule}
+          onClose={() => setLockedModule("")}
+        />
+      )}
     </main>
   );
 };

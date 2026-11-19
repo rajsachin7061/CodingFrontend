@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 import Footer from "./LandingPage/Footer.jsx";
+import PremiumLock from "../features/premium/PremiumLock";
+import UpgradeModal from "../features/premium/UpgradeModal";
 
 const problemCategories = {
   "/all-problem": "",
@@ -28,6 +30,7 @@ const Problems = () => {
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [reloadAttempt, setReloadAttempt] = useState(0);
+  const [upgradeModule, setUpgradeModule] = useState("");
 
   useEffect(() => {
     setFilters((current) => ({ ...current, programmingLanguage: category, page: 1 }));
@@ -206,9 +209,16 @@ const Problems = () => {
                 </div>
               )}
             </div>
-            <Link className="problem-solve-button" to={`/problem/${problem.id}`}>
-              Solve
-            </Link>
+            {problem.locked ? (
+              <PremiumLock
+                module={problem.premiumModule}
+                onUpgrade={() => setUpgradeModule(problem.premiumModule)}
+              />
+            ) : (
+              <Link className="problem-solve-button" to={`/problem/${problem.id}`}>
+                Solve
+              </Link>
+            )}
           </article>
         ))}
       </section>
@@ -227,6 +237,12 @@ const Problems = () => {
         </div>
       )}
      <div><Footer></Footer></div>
+      {upgradeModule && (
+        <UpgradeModal
+          module={upgradeModule}
+          onClose={() => setUpgradeModule("")}
+        />
+      )}
     </main>
   );
 };

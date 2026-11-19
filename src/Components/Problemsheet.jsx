@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import Footer from "./LandingPage/Footer.jsx";
+import PremiumLock from "../features/premium/PremiumLock";
+import UpgradeModal from "../features/premium/UpgradeModal";
 
 const Problemsheet = () => {
   const [problems, setProblems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reloadAttempt, setReloadAttempt] = useState(0);
+  const [upgradeModule, setUpgradeModule] = useState("");
 
   useEffect(() => {
     const loadProblems = async () => {
@@ -88,9 +91,8 @@ const Problemsheet = () => {
               </div>
             ))}
           {problems.map((problem, index) => (
-            <a
+            <div
               className="group flex min-h-10 items-center gap-5 rounded-3xl border border-slate-200 bg-slate-50/90 px-6 py-5 transition hover:border-violet-300 hover:bg-white hover:shadow-[0_12px_28px_rgba(99,102,241,0.12)] sm:px-5"
-              href={`/problem/${problem.id}`}
               key={problem.id}
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xl font-bold text-white shadow-sm">
@@ -105,14 +107,30 @@ const Problemsheet = () => {
                   {problem.tags?.length ? ` • ${problem.tags.join(", ")}` : ""}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-bold text-violet-700 transition group-hover:text-violet-900 sm:text-base">
-                Open <span aria-hidden="true">→</span>
-              </span>
-            </a>
+              {problem.locked ? (
+                <PremiumLock
+                  module={problem.premiumModule}
+                  onUpgrade={() => setUpgradeModule(problem.premiumModule)}
+                />
+              ) : (
+                <a
+                  className="shrink-0 text-sm font-bold text-violet-700 transition group-hover:text-violet-900 sm:text-base"
+                  href={`/problem/${problem.id}`}
+                >
+                  Open <span aria-hidden="true">→</span>
+                </a>
+              )}
+            </div>
           ))}
         </div>
       </div>
       <div><Footer></Footer></div>
+      {upgradeModule && (
+        <UpgradeModal
+          module={upgradeModule}
+          onClose={() => setUpgradeModule("")}
+        />
+      )}
     </main>
   );
 };

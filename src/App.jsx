@@ -19,7 +19,6 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { adminAccessUser } from "./Components/AdminAccess";
 import AdminLogin from "./Components/AdminLogin";
 import AdminPanel from "./Components/AdminPanel";
 import AuthPage from "./Components/AuthPage";
@@ -46,6 +45,7 @@ import PracticeLearningPath from "./Components/PracticeLearningPath.jsx";
 import Problemsheet from "./Components/Problemsheet.jsx";
 import LoadingState from "./Components/LoadingState.jsx";
 import { apiFetch } from "./api";
+import PremiumPricing from "./features/premium/PremiumPricing.jsx";
 
 const CodeCompiler = lazy(() => import("./Components/CodeCompiler"));
 
@@ -53,6 +53,8 @@ const USERS_KEY = "onlineQuizUsers";
 const SESSION_KEY = "onlineQuizCurrentUser";
 const QUESTIONS_KEY = "onlineQuizQuestions";
 const ADMIN_SESSION_KEY = "onlineQuizAdminSession";
+const USER_TOKEN_KEY = "onlineQuizAuthToken";
+const ADMIN_TOKEN_KEY = "onlineQuizAdminToken";
 const THEME_KEY = "onlineQuizTheme";
 
 const makeUsername = (name = "", email = "") => {
@@ -172,7 +174,10 @@ const getStoredQuestions = () => {
 
 const getStoredAdminSession = () => {
   try {
-    return Boolean(JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY)));
+    return Boolean(
+      JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY)) &&
+        localStorage.getItem(ADMIN_TOKEN_KEY),
+    );
   } catch {
     return false;
   }
@@ -305,7 +310,7 @@ function App() {
 
       try {
         const [apiUsers, apiQuestions, apiContestSettings] = await Promise.all([
-          fetchUsersFromApi(),
+          isAdminLoggedIn ? fetchUsersFromApi() : Promise.resolve(getStoredUsers()),
           fetchQuestionsFromApi(),
           fetchContestSettingsFromApi(),
         ]);
@@ -341,7 +346,7 @@ function App() {
     return () => {
       isCancelled = true;
     };
-  }, [remoteDataAttempt]);
+  }, [isAdminLoggedIn, remoteDataAttempt]);
 
   const closeAdminPanel = () => {
     const fallbackPage = currentUser ? "quiz" : "login";
@@ -354,7 +359,7 @@ function App() {
     goToPage(fallbackPage, { replace: true });
   };
 
-  const handleAdminLogin = (event) => {
+  const handleAdminLogin = async (event) => {
     event.preventDefault();
 
     const username = adminForm.username.trim();
@@ -365,23 +370,48 @@ function App() {
       return;
     }
 
-    const validAdmin = adminAccessUser.some(
-      (admin) => admin.username === username && admin.password === password,
-    );
+    setAuthLoading(true);
+    try {
+      const response = await apiFetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+        authRole: "admin",
+      });
+      const payload = await response.json().catch(() => ({}));
 
-    if (!validAdmin) {
-      setAdminMessage("Admin username or password is incorrect.");
-      return;
+      if (!response.ok || !payload.accessToken) {
+        setAdminMessage(
+          payload.message || "Administrator sign-in could not be completed.",
+        );
+        return;
+      }
+
+      localStorage.setItem(ADMIN_TOKEN_KEY, payload.accessToken);
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(true));
+      setIsAdminLoggedIn(true);
+      setAdminForm({ username: "", password: "" });
+      setAdminMessage("");
+      goToPage("admin");
+    } catch (error) {
+      setAdminMessage(
+        error?.message || "Unable to connect to server. Please try again.",
+      );
+    } finally {
+      setAuthLoading(false);
     }
-
-    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(true));
-    setIsAdminLoggedIn(true);
-    setAdminForm({ username: "", password: "" });
-    setAdminMessage("");
-    goToPage("admin");
   };
 
-  const logoutAdmin = () => {
+  const logoutAdmin = async () => {
+    try {
+      await apiFetch("/api/admin/logout", {
+        method: "POST",
+        authRole: "admin",
+      });
+    } catch (error) {
+      console.error("Administrator sign-out failed:", error);
+    }
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAdminLoggedIn(false);
     setAdminForm({ username: "", password: "" });
@@ -389,25 +419,36 @@ function App() {
     closeAdminPanel();
   };
 
-  const identifyUser = (user) => {
+  const identifyUser = (user, accessToken) => {
     const normalizedUser = normalizeUser(user);
+    if (!accessToken) {
+      throw new Error("The server did not create an authenticated session.");
+    }
+    localStorage.setItem(USER_TOKEN_KEY, accessToken);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    setIsAdminLoggedIn(false);
     const sessionUser = {
       name: normalizedUser.name,
       email: normalizedUser.email,
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-    setUsers((currentUsers) => [
+    setUsers((currentUsers) => {
+      const nextUsers = [
       normalizedUser,
       ...currentUsers.filter((item) => item.email !== normalizedUser.email),
-    ]);
+      ];
+      localStorage.setItem(USERS_KEY, JSON.stringify(nextUsers));
+      return nextUsers;
+    });
     setCurrentUser(sessionUser);
     goToPage("quiz");
   };
 
-  const completeAuthentication = (user) => {
+  const completeAuthentication = (user, accessToken) => {
     authRequestInFlight.current = false;
     setAuthLoading(false);
-    identifyUser(user);
+    identifyUser(user, accessToken);
   };
 
   const handleSubmit = async (event) => {
@@ -457,24 +498,16 @@ function App() {
         }
 
         const data = await response.json();
-        let registeredUser = data?.user
-          ? normalizeUser({ ...data.user, password })
-          : null;
+        const registeredUser = data?.user ? normalizeUser(data.user) : null;
 
-        if (!registeredUser?.email) {
-          const apiUsers = await fetchUsersFromApi();
-          registeredUser =
-            apiUsers.find((user) => user.email === email) || null;
-        }
-
-        if (!registeredUser?.email) {
+        if (!registeredUser?.email || !data?.accessToken) {
           setMessage(
-            "Your account was created, but we could not load it. Please log in.",
+            "Your account was created, but secure sign-in could not be completed. Please log in.",
           );
           return;
         }
 
-        completeAuthentication(registeredUser);
+        completeAuthentication(registeredUser, data.accessToken);
         return;
       }
 
@@ -499,12 +532,12 @@ function App() {
       const data = await response.json();
       const loggedInUser = data?.user ? normalizeUser(data.user) : null;
 
-      if (!loggedInUser?.email) {
+      if (!loggedInUser?.email || !data?.accessToken) {
         setMessage("The server returned an invalid login response.");
         return;
       }
 
-      completeAuthentication(loggedInUser);
+      completeAuthentication(loggedInUser, data.accessToken);
     } catch (error) {
       setMessage(
         error?.message || "Unable to connect to server. Please try again.",
@@ -669,7 +702,13 @@ function App() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST", authRole: "user" });
+    } catch (error) {
+      console.error("User sign-out failed:", error);
+    }
+    localStorage.removeItem(USER_TOKEN_KEY);
     localStorage.removeItem(SESSION_KEY);
     setCurrentUser(null);
     goToPage("landing");
@@ -683,6 +722,21 @@ function App() {
       dailyChallengeEmailOptIn: false,
     });
     setMessage("");
+  };
+
+  const beginReauthentication = async () => {
+    try {
+      await apiFetch("/api/auth/logout", {
+        method: "POST",
+        authRole: "user",
+      });
+    } catch (error) {
+      console.error("Expired user session could not be revoked:", error);
+    }
+    localStorage.removeItem(USER_TOKEN_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    setCurrentUser(null);
+    goToPage("login");
   };
 
   const saveQuestions = (updatedQuestions) => {
@@ -798,6 +852,7 @@ function App() {
 
     const response = await apiFetch(`/api/users/${user.id}`, {
       method: "DELETE",
+      authRole: "admin",
     });
 
     if (!response.ok) {
@@ -827,6 +882,7 @@ function App() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(changes),
+      authRole: mode === "admin" ? "admin" : "user",
     });
 
     if (!response.ok) {
@@ -990,6 +1046,7 @@ function App() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ blocked: isBlocking }),
+      authRole: "admin",
     });
 
     if (!response.ok) {
@@ -1063,6 +1120,7 @@ function App() {
         return (
           <AdminLogin
             form={adminForm}
+            isLoading={authLoading}
             message={adminMessage}
             onBack={closeAdminPanel}
             onChange={updateAdminForm}
@@ -1324,6 +1382,20 @@ function App() {
       <Route path="/practice-sheet" element={<Practice />} />
       <Route path="/dsa-problem-sheet" element={<Problemsheet />} />
 
+      <Route
+        path={pageRoutes.premium}
+        element={
+          <PremiumPricing
+            onLogin={beginReauthentication}
+            theme={theme}
+            user={currentUser}
+          />
+        }
+      />
+      <Route
+        path="/admin/premium"
+        element={<Navigate to={pageRoutes.admin} replace />}
+      />
       <Route path={pageRoutes.login} element={currentPage} />
       <Route path={pageRoutes.register} element={currentPage} />
       <Route path={pageRoutes.reset} element={currentPage} />

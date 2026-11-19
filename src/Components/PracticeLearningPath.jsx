@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api";
+import PremiumLock from "../features/premium/PremiumLock";
+import UpgradeModal from "../features/premium/UpgradeModal";
+import "../features/premium/premium.css";
 import "./PracticeLearningPath.css";
 import Footer from "./LandingPage/Footer.jsx";
 
@@ -175,6 +178,7 @@ export default function PracticeLearningPath() {
   const [message, setMessage] = useState("");
   const [progressState, setProgressState] = useState({});
   const [reloadAttempt, setReloadAttempt] = useState(0);
+  const [upgradeModule, setUpgradeModule] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -566,8 +570,8 @@ export default function PracticeLearningPath() {
                         ? `/practice-question/${item.questionId}`
                         : `/problem/${question.slug || item.problemId}`;
 
-                    return (
-                      <Link className="learning-question" key={item.id} to={target}>
+                    const content = (
+                      <>
                         <span>{index + 1}</span>
                         <div>
                           <strong>{question.title || question.name || "Practice question"}</strong>
@@ -576,6 +580,20 @@ export default function PracticeLearningPath() {
                             {question.tags?.length ? ` • ${question.tags.join(", ")}` : ""}
                           </small>
                         </div>
+                      </>
+                    );
+
+                    return question.locked ? (
+                      <div className="learning-question" key={item.id}>
+                        {content}
+                        <PremiumLock
+                          module={question.premiumModule}
+                          onUpgrade={() => setUpgradeModule(question.premiumModule)}
+                        />
+                      </div>
+                    ) : (
+                      <Link className="learning-question" key={item.id} to={target}>
+                        {content}
                         <b>Open →</b>
                       </Link>
                     );
@@ -596,6 +614,12 @@ export default function PracticeLearningPath() {
           <Footer />
         </div>
       </div>
+      {upgradeModule && (
+        <UpgradeModal
+          module={upgradeModule}
+          onClose={() => setUpgradeModule("")}
+        />
+      )}
     </main>
   );
 }
