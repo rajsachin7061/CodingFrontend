@@ -199,7 +199,7 @@ export default function ProblemEditorForm({
         </label>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_180px]">
+      <div className="grid gap-4 lg:grid-cols-3">
         <label className={labelClass}>
           Tags
           <input
@@ -218,6 +218,18 @@ export default function ProblemEditorForm({
           >
             <option value="published">Published</option>
             <option value="draft">Draft</option>
+          </select>
+        </label>
+        <label className={labelClass}>
+          Premium access
+          <select
+            className={fieldClass}
+            onChange={(event) => updateForm("premiumModule", event.target.value)}
+            value={form.premiumModule}
+          >
+            <option value="">Free</option>
+            <option value="DSA">DSA Premium</option>
+            <option value="PRACTICE">Practice Premium</option>
           </select>
         </label>
       </div>

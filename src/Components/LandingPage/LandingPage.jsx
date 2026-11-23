@@ -81,6 +81,11 @@ const Page = ({ onLogin, onSignup }) => {
                 Compiler
               </Link>
             </li>
+            <li>
+              <Link to={pageRoutes.premium} onClick={closeMenu}>
+                Premium
+              </Link>
+            </li>
             <li className="nav-action">
               <button
                 className="login-button"

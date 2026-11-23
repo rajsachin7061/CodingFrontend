@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ProblemManagement from "./ProblemManagement";
 import quizCategories, { defaultQuizCategory } from "./QuizCategories";
 import { problemsApi } from "../features/admin/api/adminApi";
+import PremiumManagementPanel from "../features/premium/PremiumManagementPanel";
 
 const emptyQuestion = {
   category: defaultQuizCategory,
@@ -532,6 +533,7 @@ function AdminPanel({
             "contest",
             "quiz",
             "leaderboard",
+            "premium",
           ].map((view) => (
             <button
               key={view}
@@ -548,6 +550,7 @@ function AdminPanel({
               {view === "contest" && "Contest Settings"}
               {view === "quiz" && "Quiz Settings"}
               {view === "leaderboard" && "LeaderBoard"}
+              {view === "premium" && "Premium Management"}
             </button>
           ))}
         </div>
@@ -930,6 +933,8 @@ function AdminPanel({
         )}
 
         {activeView === "problems" && <ProblemManagement />}
+
+        {activeView === "premium" && <PremiumManagementPanel />}
 
         {activeView === "contest" && (
           <form className="admin-form" onSubmit={saveContestSettings}>
